@@ -1,0 +1,24 @@
+# .NET build output
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# ASP.NET Core wwwroot (built by npm)
+StockAccuracy.API/wwwroot/
+
+# npm
+stockaccuracy-ui/node_modules/
+stockaccuracy-ui/.vite/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# secrets
+appsettings.Production.json
