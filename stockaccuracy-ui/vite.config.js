@@ -1,14 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { mockApiPlugin } from './mock/plugin.js'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), mockApiPlugin()],
   server: {
     proxy: {
-      '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-      }
+      // Only proxied when VITE_USE_REAL_API=true; otherwise mock plugin intercepts first
     }
   },
   build: {
