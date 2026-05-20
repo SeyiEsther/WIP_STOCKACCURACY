@@ -117,7 +117,7 @@ export default function App() {
         case 'delta':          return dir * (a.delta - b.delta)
         case 'pctChange':      return dir * (a.pctChange - b.pctChange)
         case 'absPct':
-        default:               return dir * (Math.abs(b.pctChange) - Math.abs(a.pctChange))
+        default:               return dir * (Math.abs(a.pctChange) - Math.abs(b.pctChange))
       }
     })
   }, [filtered, sortKey, sortDir])
