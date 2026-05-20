@@ -6,9 +6,9 @@ export default defineConfig({
   plugins: [react(), mockApiPlugin()],
   server: {
     allowedHosts: 'all',
-    proxy: {
-      // Only proxied when VITE_USE_REAL_API=true; otherwise mock plugin intercepts first
-    }
+    proxy: process.env.VITE_USE_REAL_API
+      ? { '/api': { target: 'http://localhost:5000', changeOrigin: true } }
+      : {}
   },
   build: {
     outDir: '../StockAccuracy.API/wwwroot',
