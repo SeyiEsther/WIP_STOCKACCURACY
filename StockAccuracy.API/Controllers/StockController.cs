@@ -14,61 +14,76 @@ public class StockController : ControllerBase
 {
     private readonly IStockRepository _repo;
     private readonly IConfiguration   _config;
+    private readonly ILogger<StockController> _log;
 
-    public StockController(IStockRepository repo, IConfiguration config)
+    public StockController(IStockRepository repo, IConfiguration config, ILogger<StockController> log)
     {
         _repo   = repo;
         _config = config;
+        _log    = log;
     }
 
-    // ── Diagnostic: open browser to /api/stock/health to see the real error ──
+    // Navigate to /api/stock/health in the browser to see the real connection error
     [HttpGet("health")]
     public async Task<IActionResult> Health()
     {
-        var cs = _config.GetConnectionString("StockDb") ?? "(connection string missing)";
+        var cs = _config.GetConnectionString("StockDb");
+        if (string.IsNullOrWhiteSpace(cs))
+            return StatusCode(500, new { error = "Connection string 'StockDb' is missing from appsettings.json" });
+
         try
         {
             using var conn = new SqlConnection(cs);
             await conn.OpenAsync();
 
-            var server   = conn.DataSource;
-            var database = conn.Database;
-
-            // Verify both views exist
-            var views = await conn.QueryAsync<string>(
-                "SELECT name FROM sys.views WHERE name IN ('vw_StockComparison','vw_StockSummary')");
+            var views = (await conn.QueryAsync<string>(
+                "SELECT name FROM sys.views WHERE name IN ('vw_StockComparison','vw_StockSummary') ORDER BY name"
+            )).ToList();
 
             return Ok(new
             {
                 status   = "connected",
-                server,
-                database,
-                views    = views.ToList(),
+                server   = conn.DataSource,
+                database = conn.Database,
+                views,
+                viewsOk  = views.Count == 2,
             });
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new
-            {
-                status = "failed",
-                error  = ex.Message,
-                type   = ex.GetType().Name,
-            });
+            _log.LogError(ex, "Health check failed");
+            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
         }
     }
 
     [HttpGet("comparison")]
-    public async Task<ActionResult<IEnumerable<StockComparison>>> GetComparison()
+    public async Task<IActionResult> GetComparison()
     {
-        var data = await _repo.GetStockComparisonAsync();
-        return Ok(data);
+        try
+        {
+            var data = await _repo.GetStockComparisonAsync();
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "GET comparison failed");
+            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
+        }
     }
 
     [HttpGet("summary")]
-    public async Task<ActionResult<StockSummary>> GetSummary()
+    public async Task<IActionResult> GetSummary()
     {
-        var summary = await _repo.GetStockSummaryAsync();
-        return Ok(summary);
+        try
+        {
+            var summary = await _repo.GetStockSummaryAsync();
+            return Ok(summary);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "GET summary failed");
+            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
+        }
     }
 
     [HttpGet("export")]
@@ -78,19 +93,26 @@ public class StockController : ControllerBase
         [FromQuery] string?  search,
         [FromQuery] decimal  threshold = 10)
     {
-        var data     = await _repo.GetStockComparisonAsync();
-        var filtered = ApplyFilters(data, status, sloc, search, threshold);
-
-        var stream = new MemoryStream();
-        using (var writer = new StreamWriter(stream, leaveOpen: true))
-        using (var csv    = new CsvWriter(writer, CultureInfo.InvariantCulture))
+        try
         {
-            csv.WriteRecords(filtered);
-        }
-        stream.Position = 0;
+            var data     = await _repo.GetStockComparisonAsync();
+            var filtered = ApplyFilters(data, status, sloc, search, threshold);
 
-        var filename = $"stock-accuracy-{DateTime.Today:yyyyMMdd}.csv";
-        return File(stream, "text/csv", filename);
+            var stream = new MemoryStream();
+            using (var writer = new StreamWriter(stream, leaveOpen: true))
+            using (var csv    = new CsvWriter(writer, CultureInfo.InvariantCulture))
+            {
+                csv.WriteRecords(filtered);
+            }
+            stream.Position = 0;
+
+            return File(stream, "text/csv", $"stock-accuracy-{DateTime.Today:yyyyMMdd}.csv");
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Export failed");
+            return StatusCode(500, new { error = ex.Message });
+        }
     }
 
     private static IEnumerable<StockComparison> ApplyFilters(
@@ -118,7 +140,7 @@ public class StockController : ControllerBase
             "DOWN"    => data.Where(r => r.Delta < 0),
             "NEW"     => data.Where(r => r.Status == "NEW"),
             "MISSING" => data.Where(r => r.Status == "MISSING"),
-            _         => data
+            _         => data,
         };
 
         return data;
