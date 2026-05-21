@@ -14,13 +14,13 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Return JSON error details instead of an HTML 500 page
+// Always return JSON errors — suppress the HTML developer exception page
 app.UseExceptionHandler(errApp => errApp.Run(async ctx =>
 {
     ctx.Response.StatusCode  = 500;
     ctx.Response.ContentType = "application/json";
     var feature = ctx.Features.Get<IExceptionHandlerFeature>();
-    var message = feature?.Error.Message ?? "Internal server error";
+    var message = feature?.Error?.Message ?? "Internal server error";
     await ctx.Response.WriteAsJsonAsync(new { error = message });
 }));
 

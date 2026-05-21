@@ -1,5 +1,7 @@
 using CsvHelper;
+using Dapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using StockAccuracy.API.Data;
 using StockAccuracy.API.Models;
 using System.Globalization;
@@ -11,10 +13,48 @@ namespace StockAccuracy.API.Controllers;
 public class StockController : ControllerBase
 {
     private readonly IStockRepository _repo;
+    private readonly IConfiguration   _config;
 
-    public StockController(IStockRepository repo)
+    public StockController(IStockRepository repo, IConfiguration config)
     {
-        _repo = repo;
+        _repo   = repo;
+        _config = config;
+    }
+
+    // ── Diagnostic: open browser to /api/stock/health to see the real error ──
+    [HttpGet("health")]
+    public async Task<IActionResult> Health()
+    {
+        var cs = _config.GetConnectionString("StockDb") ?? "(connection string missing)";
+        try
+        {
+            using var conn = new SqlConnection(cs);
+            await conn.OpenAsync();
+
+            var server   = conn.DataSource;
+            var database = conn.Database;
+
+            // Verify both views exist
+            var views = await conn.QueryAsync<string>(
+                "SELECT name FROM sys.views WHERE name IN ('vw_StockComparison','vw_StockSummary')");
+
+            return Ok(new
+            {
+                status   = "connected",
+                server,
+                database,
+                views    = views.ToList(),
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new
+            {
+                status = "failed",
+                error  = ex.Message,
+                type   = ex.GetType().Name,
+            });
+        }
     }
 
     [HttpGet("comparison")]
@@ -33,18 +73,17 @@ public class StockController : ControllerBase
 
     [HttpGet("export")]
     public async Task<IActionResult> ExportCsv(
-        [FromQuery] string? status,
-        [FromQuery] string? sloc,
-        [FromQuery] string? search,
-        [FromQuery] decimal threshold = 10)
+        [FromQuery] string?  status,
+        [FromQuery] string?  sloc,
+        [FromQuery] string?  search,
+        [FromQuery] decimal  threshold = 10)
     {
-        var data = await _repo.GetStockComparisonAsync();
-
+        var data     = await _repo.GetStockComparisonAsync();
         var filtered = ApplyFilters(data, status, sloc, search, threshold);
 
         var stream = new MemoryStream();
         using (var writer = new StreamWriter(stream, leaveOpen: true))
-        using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+        using (var csv    = new CsvWriter(writer, CultureInfo.InvariantCulture))
         {
             csv.WriteRecords(filtered);
         }
@@ -56,10 +95,10 @@ public class StockController : ControllerBase
 
     private static IEnumerable<StockComparison> ApplyFilters(
         IEnumerable<StockComparison> data,
-        string? status,
-        string? sloc,
-        string? search,
-        decimal threshold)
+        string?  status,
+        string?  sloc,
+        string?  search,
+        decimal  threshold)
     {
         if (!string.IsNullOrWhiteSpace(sloc))
             data = data.Where(r => r.SLoc == sloc);
