@@ -86,6 +86,21 @@ public class StockController : ControllerBase
         }
     }
 
+    [HttpGet("trend")]
+    public async Task<IActionResult> GetTrend()
+    {
+        try
+        {
+            var data = await _repo.GetStockTrendAsync();
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "GET trend failed");
+            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
+        }
+    }
+
     [HttpGet("export")]
     public async Task<IActionResult> ExportCsv(
         [FromQuery] string?  status,

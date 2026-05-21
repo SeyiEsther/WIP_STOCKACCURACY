@@ -78,3 +78,17 @@ export const summary = {
   totalMissing:  comparison.filter(r => r.status === 'MISSING').length,
   lastSnapshotDate: today,
 }
+
+// 7-day trend data for the mock dev server
+const baseDate = new Date()
+export const trend = Array.from({ length: 7 }, (_, i) => {
+  const d = new Date(baseDate)
+  d.setDate(d.getDate() - (6 - i))
+  const tracked = 36 + Math.floor(Math.random() * 8)
+  const flagged = 2 + Math.floor(Math.random() * 6)
+  return {
+    snapshotDate: d.toISOString().slice(0, 10),
+    totalTracked: tracked,
+    flagged,
+  }
+})

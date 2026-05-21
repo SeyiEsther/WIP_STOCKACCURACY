@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import Header from './components/Header.jsx'
 import StatCards from './components/StatCards.jsx'
-import TopMoversChart from './components/TopMoversChart.jsx'
+import TrendChart from './components/TrendChart.jsx'
 import FilterBar from './components/FilterBar.jsx'
 import StockTable from './components/StockTable.jsx'
 
@@ -13,16 +13,17 @@ function useStockData() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
+  const [trend, setTrend] = useState([])
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const [compRes, sumRes] = await Promise.all([
+      const [compRes, sumRes, trendRes] = await Promise.all([
         fetch(`${API_BASE}/comparison`),
         fetch(`${API_BASE}/summary`),
+        fetch(`${API_BASE}/trend`),
       ])
-      // Surface the actual server error message so it's visible in the banner
       if (!compRes.ok || !sumRes.ok) {
         const bad  = !compRes.ok ? compRes : sumRes
         const body = await bad.text().catch(() => '')
@@ -31,6 +32,10 @@ function useStockData() {
         throw new Error(`HTTP ${bad.status} — ${detail || bad.statusText}`)
       }
       const [comp, sum] = await Promise.all([compRes.json(), sumRes.json()])
+      if (trendRes.ok) {
+        const trendData = await trendRes.json()
+        setTrend(trendData)
+      }
       setRows(comp)
       setSummary(sum)
       setLastUpdated(new Date())
@@ -43,11 +48,11 @@ function useStockData() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
-  return { rows, summary, loading, error, lastUpdated, refresh: fetchAll }
+  return { rows, summary, trend, loading, error, lastUpdated, refresh: fetchAll }
 }
 
 export default function App() {
-  const { rows, summary, loading, error, lastUpdated, refresh } = useStockData()
+  const { rows, summary, trend, loading, error, lastUpdated, refresh } = useStockData()
 
   const [activeCard, setActiveCard] = useState('ALL')
   const [filterChip, setFilterChip] = useState('ALL')
@@ -158,16 +163,14 @@ export default function App() {
 
       <main style={{ flex: 1, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {error && (
-          <div style={{ background: '#1a0a0d', border: '1px solid var(--accent-red)', color: 'var(--accent-red)', padding: '10px 14px', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+          <div style={{ background: '#fff0f2', border: '1px solid var(--accent-red)', color: 'var(--accent-red)', padding: '10px 14px', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
             Error: {error}
           </div>
         )}
 
         <StatCards summary={liveSummary} activeCard={activeCard} onCardClick={handleCardClick} />
 
-        {!loading && normalised.length > 0 && (
-          <TopMoversChart data={normalised} threshold={threshold} />
-        )}
+        <TrendChart data={trend} />
 
         <FilterBar
           filterChip={filterChip}

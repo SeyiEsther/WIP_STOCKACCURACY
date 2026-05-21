@@ -1,4 +1,4 @@
-import { comparison, summary } from './data.js'
+import { comparison, summary, trend } from './data.js'
 
 export function mockApiPlugin() {
   return {
@@ -39,6 +39,11 @@ export function mockApiPlugin() {
         res.setHeader('Content-Type', 'text/csv')
         res.setHeader('Content-Disposition', `attachment; filename="stock-accuracy-${new Date().toISOString().slice(0,10)}.csv"`)
         res.end(csv)
+      })
+
+      server.middlewares.use('/api/stock/trend', (_req, res) => {
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify(trend))
       })
 
       server.middlewares.use('/api/stock/comparison', (_req, res) => {

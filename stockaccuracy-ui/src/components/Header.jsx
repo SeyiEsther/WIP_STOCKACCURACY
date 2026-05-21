@@ -18,9 +18,6 @@ export default function Header({ lastUpdated, onRefresh, onExport, loading }) {
         <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', letterSpacing: '0.03em' }}>
           Stock Accuracy Monitor
         </div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>
-          ZMM_LI009 / WIP Stock Rep JF — Rittal CSM Plymouth
-        </div>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
