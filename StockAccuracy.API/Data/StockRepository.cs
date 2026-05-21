@@ -7,8 +7,9 @@ namespace StockAccuracy.API.Data;
 public interface IStockRepository
 {
     Task<IEnumerable<StockComparison>> GetStockComparisonAsync();
-    Task<StockSummary> GetStockSummaryAsync();
-    Task<IEnumerable<StockTrend>> GetStockTrendAsync();
+    Task<StockSummary>                 GetStockSummaryAsync();
+    Task<IEnumerable<StockTrend>>      GetStockTrendAsync();
+    Task<IEnumerable<MaterialTrend>>   GetMaterialTrendsAsync(int days = 5);
 }
 
 public class StockRepository : IStockRepository
@@ -85,6 +86,63 @@ public class StockRepository : IStockRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to query stock trend");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Returns directional trend per material+SLoc over the last <paramref name="days"/> snapshot days.
+    /// UP   = every day-over-day step was positive (qty rose each day)
+    /// DOWN = every step was negative
+    /// FLAT = mixed or zero movement
+    /// </summary>
+    public async Task<IEnumerable<MaterialTrend>> GetMaterialTrendsAsync(int days = 5)
+    {
+        if (days < 2)  days = 2;
+        if (days > 30) days = 30;
+
+        try
+        {
+            using var conn = new SqlConnection(_connectionString);
+            return await conn.QueryAsync<MaterialTrend>(@"
+                WITH RecentDates AS (
+                    SELECT TOP (@Days + 1) SnapshotDate
+                    FROM (SELECT DISTINCT SnapshotDate FROM dbo.StockSnapshot) d
+                    ORDER BY SnapshotDate DESC
+                ),
+                Snaps AS (
+                    SELECT
+                        s.MaterialNumber, s.SLoc, s.Qty,
+                        LAG(s.Qty) OVER (
+                            PARTITION BY s.MaterialNumber, s.SLoc
+                            ORDER BY s.SnapshotDate
+                        ) AS PrevQty
+                    FROM dbo.StockSnapshot s
+                    INNER JOIN RecentDates rd ON rd.SnapshotDate = s.SnapshotDate
+                ),
+                Steps AS (
+                    SELECT MaterialNumber, SLoc,
+                        SIGN(Qty - PrevQty) AS Dir
+                    FROM Snaps
+                    WHERE PrevQty IS NOT NULL
+                )
+                SELECT
+                    MaterialNumber,
+                    SLoc,
+                    COUNT(*)  AS DataPoints,
+                    CASE
+                        WHEN MIN(Dir) = 1  THEN 'UP'
+                        WHEN MAX(Dir) = -1 THEN 'DOWN'
+                        ELSE 'FLAT'
+                    END AS TrendDirection
+                FROM Steps
+                GROUP BY MaterialNumber, SLoc
+                HAVING COUNT(*) >= 2
+            ", new { Days = days });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to query material trends (days={Days})", days);
             throw;
         }
     }

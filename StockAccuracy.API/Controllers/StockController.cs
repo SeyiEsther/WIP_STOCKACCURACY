@@ -101,6 +101,21 @@ public class StockController : ControllerBase
         }
     }
 
+    [HttpGet("material-trends")]
+    public async Task<IActionResult> GetMaterialTrends([FromQuery] int days = 5)
+    {
+        try
+        {
+            var data = await _repo.GetMaterialTrendsAsync(days);
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "GET material-trends failed");
+            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
+        }
+    }
+
     [HttpGet("export")]
     public async Task<IActionResult> ExportCsv(
         [FromQuery] string?  status,
