@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import Header              from './components/Header.jsx'
-import StatCards           from './components/StatCards.jsx'
-import TrendChart          from './components/TrendChart.jsx'
+import Header               from './components/Header.jsx'
+import StatCards            from './components/StatCards.jsx'
+import TrendChart           from './components/TrendChart.jsx'
 import DailyComparisonChart from './components/DailyComparisonChart.jsx'
-import FilterBar           from './components/FilterBar.jsx'
-import StockTable          from './components/StockTable.jsx'
+import FilterBar            from './components/FilterBar.jsx'
+import StockTable           from './components/StockTable.jsx'
+import NotificationPanel    from './components/NotificationPanel.jsx'
 
 const API_BASE = '/api/stock'
 
@@ -81,23 +82,23 @@ function useStockData(trendDays) {
   return { rows, summary, trend, materialTrends, loading, error, lastUpdated, refresh: fetchAll }
 }
 
-// ─── acknowledgement helpers ────────────────────────────────────────────────
-const ACK_KEY = 'sa_ack'
-const ackId   = (mat, sloc) => `${mat}__${sloc}`
+// ─── investigation store (localStorage) ─────────────────────────────────────
+const IID_KEY = 'sa_investigated'
+const iid     = (mat, sloc) => `${mat}__${sloc}`
 
-function loadAck() {
-  try { return JSON.parse(localStorage.getItem(ACK_KEY) || '{}') } catch { return {} }
+function loadInvestigated() {
+  try { return JSON.parse(localStorage.getItem(IID_KEY) || '{}') } catch { return {} }
 }
-function saveAck(obj) {
-  try { localStorage.setItem(ACK_KEY, JSON.stringify(obj)) } catch {}
+function saveInvestigated(obj) {
+  try { localStorage.setItem(IID_KEY, JSON.stringify(obj)) } catch {}
 }
 
 // ─── ABC classification (client-side) ───────────────────────────────────────
-// Sort by total stock value (unitValue × |qtyToday|) descending.
+// Sort by total stock value (unitValue × |qtyToday|) desc.
 // Top 10% of items by count = A, next 20% = B, remaining = C.
 function computeABC(rows) {
   const hasValue = rows.some(r => r.unitValue != null)
-  if (!hasValue) return null   // no pricing data available
+  if (!hasValue) return null
 
   const sorted = [...rows].sort((a, b) => {
     const va = (a.unitValue ?? 0) * Math.abs(a.qtyToday ?? 0)
@@ -105,13 +106,13 @@ function computeABC(rows) {
     return vb - va
   })
 
-  const n = sorted.length
+  const n    = sorted.length
   const aEnd = Math.max(1, Math.ceil(n * 0.10))
   const bEnd = Math.max(2, Math.ceil(n * 0.30))
 
   const map = new Map()
   sorted.forEach((r, i) => {
-    map.set(ackId(r.materialNumber, r.sLoc), i < aEnd ? 'A' : i < bEnd ? 'B' : 'C')
+    map.set(iid(r.materialNumber, r.sLoc), i < aEnd ? 'A' : i < bEnd ? 'B' : 'C')
   })
   return map
 }
@@ -137,18 +138,21 @@ export default function App() {
   const [trendOnly,   setTrendOnly]   = useState(false)
   const [hideAcked,   setHideAcked]   = useState(false)
 
-  // ── acknowledgements (localStorage) ──────────────────────────────────────
-  const [acknowledgements, setAcknowledgements] = useState(loadAck)
+  // ── investigation state ───────────────────────────────────────────────────
+  const [investigated, setInvestigated] = useState(loadInvestigated)
 
-  const handleAck = useCallback((mat, sloc) => {
-    setAcknowledgements(prev => {
-      const k    = ackId(mat, sloc)
+  const handleInvestigate = useCallback((mat, sloc) => {
+    setInvestigated(prev => {
+      const k    = iid(mat, sloc)
       const next = { ...prev }
       if (next[k]) { delete next[k] } else { next[k] = { ts: new Date().toISOString() } }
-      saveAck(next)
+      saveInvestigated(next)
       return next
     })
   }, [])
+
+  // ── notification panel ────────────────────────────────────────────────────
+  const [notifOpen, setNotifOpen] = useState(false)
 
   // ── sync card → chip ──────────────────────────────────────────────────────
   const handleCardClick = (cat) => {
@@ -167,14 +171,10 @@ export default function App() {
 
   // ── merge material trends ─────────────────────────────────────────────────
   const withTrends = useMemo(() => {
-    const tmap = new Map(materialTrends.map(t => [ackId(t.materialNumber, t.sLoc), t]))
+    const tmap = new Map(materialTrends.map(t => [iid(t.materialNumber, t.sLoc), t]))
     return normalised.map(r => {
-      const t = tmap.get(ackId(r.materialNumber, r.sLoc))
-      return {
-        ...r,
-        trendDirection: t?.trendDirection ?? null,
-        trendDays:      t?.dataPoints     ?? 0,
-      }
+      const t = tmap.get(iid(r.materialNumber, r.sLoc))
+      return { ...r, trendDirection: t?.trendDirection ?? null, trendDays: t?.dataPoints ?? 0 }
     })
   }, [normalised, materialTrends])
 
@@ -184,10 +184,20 @@ export default function App() {
   const withABC = useMemo(() =>
     withTrends.map(r => ({
       ...r,
-      abcClass:    abcMap ? (abcMap.get(ackId(r.materialNumber, r.sLoc)) ?? null) : null,
+      abcClass:    abcMap ? (abcMap.get(iid(r.materialNumber, r.sLoc)) ?? null) : null,
       valueImpact: r.unitValue != null ? Math.abs(r.delta ?? 0) * r.unitValue : null,
     }))
   , [withTrends, abcMap])
+
+  // ── unread bell count (flagged & not yet investigated) ────────────────────
+  const unreadCount = useMemo(() =>
+    withABC.filter(r =>
+      Math.abs(r.pctChange) > threshold &&
+      r.status !== 'MISSING' &&
+      r.status !== 'NEW' &&
+      !investigated[iid(r.materialNumber, r.sLoc)]
+    ).length
+  , [withABC, threshold, investigated])
 
   // ── filtered rows ─────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -214,10 +224,10 @@ export default function App() {
 
     if (abcFilter !== 'ALL') d = d.filter(r => r.abcClass === abcFilter)
     if (trendOnly)           d = d.filter(r => r.trendDirection === 'UP' || r.trendDirection === 'DOWN')
-    if (hideAcked)           d = d.filter(r => !acknowledgements[ackId(r.materialNumber, r.sLoc)])
+    if (hideAcked)           d = d.filter(r => !investigated[iid(r.materialNumber, r.sLoc)])
 
     return d
-  }, [withABC, sloc, search, activeCard, filterChip, threshold, abcFilter, trendOnly, hideAcked, acknowledgements])
+  }, [withABC, sloc, search, activeCard, filterChip, threshold, abcFilter, trendOnly, hideAcked, investigated])
 
   // ── sorted rows ───────────────────────────────────────────────────────────
   const sorted = useMemo(() => {
@@ -252,7 +262,7 @@ export default function App() {
     window.location.href = `${API_BASE}/export?${params}`
   }
 
-  // ── live summary with threshold-adjusted flagged count ────────────────────
+  // ── live summary (threshold-adjusted flagged count) ───────────────────────
   const liveSummary = useMemo(() => {
     if (!summary) return null
     return {
@@ -261,7 +271,7 @@ export default function App() {
     }
   }, [summary, withABC, threshold])
 
-  const ackedCount = Object.keys(acknowledgements).length
+  const investigatedCount = Object.keys(investigated).length
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
@@ -271,6 +281,8 @@ export default function App() {
         onExport={handleExport}
         loading={loading}
         error={error}
+        unreadCount={unreadCount}
+        onBellClick={() => setNotifOpen(o => !o)}
       />
 
       <main style={{ flex: 1, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -313,7 +325,7 @@ export default function App() {
           onTrendDaysChange={setTrendDays}
           hideAcked={hideAcked}
           onHideAckedChange={setHideAcked}
-          ackedCount={ackedCount}
+          ackedCount={investigatedCount}
           hasAbc={!!abcMap}
         />
 
@@ -324,11 +336,22 @@ export default function App() {
           sortDir={sortDir}
           onSort={handleSort}
           threshold={threshold}
-          acknowledgements={acknowledgements}
-          onAck={handleAck}
+          investigated={investigated}
+          onAck={handleInvestigate}
           hasAbc={!!abcMap}
         />
       </main>
+
+      {/* Notification panel */}
+      {notifOpen && (
+        <NotificationPanel
+          items={withABC}
+          threshold={threshold}
+          investigated={investigated}
+          onInvestigate={handleInvestigate}
+          onClose={() => setNotifOpen(false)}
+        />
+      )}
     </div>
   )
 }

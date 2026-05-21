@@ -12,7 +12,17 @@ function useClock() {
 const fmt = (d) =>
   d ? d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : null
 
-export default function Header({ lastUpdated, onRefresh, onExport, loading, error }) {
+function BellIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M7.5 2a4.5 4.5 0 0 0-4.5 4.5V8.2L1.8 11h11.4L12 8.2V6.5A4.5 4.5 0 0 0 7.5 2z"
+        stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" fill="none" />
+      <path d="M6 11.5a1.5 1.5 0 0 0 3 0" stroke="currentColor" strokeWidth="1.25" />
+    </svg>
+  )
+}
+
+export default function Header({ lastUpdated, onRefresh, onExport, loading, error, unreadCount, onBellClick }) {
   const now = useClock()
 
   const statusType = error ? 'error' : loading ? 'loading' : lastUpdated ? 'live' : 'idle'
@@ -38,19 +48,12 @@ export default function Header({ lastUpdated, onRefresh, onExport, loading, erro
       {/* Brand */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flex: 1 }}>
         <span style={{
-          fontFamily: 'var(--font-mono)',
-          fontWeight: 700,
-          fontSize: 13,
-          color: 'var(--tx-hi)',
-          letterSpacing: '-0.01em',
+          fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 13,
+          color: 'var(--tx-hi)', letterSpacing: '-0.01em',
         }}>
           Stock Accuracy
         </span>
-        <span style={{
-          fontFamily: 'var(--font-sans)',
-          fontSize: 11,
-          color: 'var(--tx-lo)',
-        }}>
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--tx-lo)' }}>
           Rittal CSM Plymouth
         </span>
       </div>
@@ -79,11 +82,36 @@ export default function Header({ lastUpdated, onRefresh, onExport, loading, erro
 
       {/* Live clock */}
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: 12,
-        color: 'var(--tx-hi)', fontWeight: 500,
-        letterSpacing: '0.03em', minWidth: 64,
+        fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--tx-hi)',
+        fontWeight: 500, letterSpacing: '0.03em', minWidth: 64,
       }}>
         {fmt(now)}
+      </div>
+
+      <Divider />
+
+      {/* Bell / notification button */}
+      <div style={{ position: 'relative', display: 'inline-flex' }}>
+        <button
+          onClick={onBellClick}
+          title={unreadCount > 0 ? `${unreadCount} unaddressed flag${unreadCount !== 1 ? 's' : ''}` : 'No unaddressed flags'}
+          style={{
+            background: unreadCount > 0 ? 'var(--red-bg)' : 'transparent',
+            border: unreadCount > 0 ? '1px solid var(--red-border)' : '1px solid var(--border)',
+            color: unreadCount > 0 ? 'var(--red)' : 'var(--tx-lo)',
+            padding: '4px 8px',
+            borderRadius: 4,
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 5,
+            fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600,
+            transition: 'all 0.12s',
+          }}
+        >
+          <BellIcon />
+          {unreadCount > 0 && (
+            <span>{unreadCount > 99 ? '99+' : unreadCount}</span>
+          )}
+        </button>
       </div>
 
       <Divider />
@@ -103,8 +131,7 @@ function Divider() {
 const BASE_BTN = {
   padding: '4px 10px',
   fontFamily: 'var(--font-mono)',
-  fontSize: 11,
-  fontWeight: 500,
+  fontSize: 11, fontWeight: 500,
   letterSpacing: '0.02em',
   borderRadius: 4,
   transition: 'opacity 0.12s',
@@ -113,17 +140,13 @@ const BASE_BTN = {
 
 function GhostBtn({ children, onClick, disabled }) {
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        ...BASE_BTN,
-        background: 'transparent',
-        border: '1px solid var(--border)',
-        color: disabled ? 'var(--tx-faint)' : 'var(--tx-body)',
-        opacity: disabled ? 0.5 : 1,
-      }}
-    >
+    <button onClick={onClick} disabled={disabled} style={{
+      ...BASE_BTN,
+      background: 'transparent',
+      border: '1px solid var(--border)',
+      color: disabled ? 'var(--tx-faint)' : 'var(--tx-body)',
+      opacity: disabled ? 0.5 : 1,
+    }}>
       {children}
     </button>
   )
@@ -131,17 +154,13 @@ function GhostBtn({ children, onClick, disabled }) {
 
 function PrimaryBtn({ children, onClick, disabled }) {
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        ...BASE_BTN,
-        background: disabled ? 'var(--bg-inset)' : 'var(--blue)',
-        border: 'none',
-        color: disabled ? 'var(--tx-lo)' : '#fff',
-        opacity: disabled ? 0.7 : 1,
-      }}
-    >
+    <button onClick={onClick} disabled={disabled} style={{
+      ...BASE_BTN,
+      background: disabled ? 'var(--bg-inset)' : 'var(--blue)',
+      border: 'none',
+      color: disabled ? 'var(--tx-lo)' : '#fff',
+      opacity: disabled ? 0.7 : 1,
+    }}>
       {children}
     </button>
   )

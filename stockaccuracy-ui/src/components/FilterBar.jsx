@@ -140,7 +140,7 @@ export default function FilterBar({
 
         <Sep />
 
-        {/* Hide acknowledged */}
+        {/* Hide investigated */}
         <ToggleBtn
           active={hideAcked}
           onClick={() => onHideAckedChange(!hideAcked)}
@@ -148,7 +148,7 @@ export default function FilterBar({
           activeBg="var(--green-bg)"
           activeBorder="var(--green-border)"
         >
-          Hide acked{ackedCount > 0 ? ` (${ackedCount})` : ''}
+          Hide investigated{ackedCount > 0 ? ` (${ackedCount})` : ''}
         </ToggleBtn>
       </div>
     </div>
