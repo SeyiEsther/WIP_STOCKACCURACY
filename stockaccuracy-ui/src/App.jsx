@@ -22,7 +22,14 @@ function useStockData() {
         fetch(`${API_BASE}/comparison`),
         fetch(`${API_BASE}/summary`),
       ])
-      if (!compRes.ok || !sumRes.ok) throw new Error('API error')
+      // Surface the actual server error message so it's visible in the banner
+      if (!compRes.ok || !sumRes.ok) {
+        const bad  = !compRes.ok ? compRes : sumRes
+        const body = await bad.text().catch(() => '')
+        let detail = ''
+        try { detail = JSON.parse(body)?.error ?? body } catch { detail = body }
+        throw new Error(`HTTP ${bad.status} — ${detail || bad.statusText}`)
+      }
       const [comp, sum] = await Promise.all([compRes.json(), sumRes.json()])
       setRows(comp)
       setSummary(sum)
