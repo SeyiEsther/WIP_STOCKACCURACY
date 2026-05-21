@@ -1,19 +1,19 @@
 const CHIPS = [
-  { key: 'ALL',     label: 'All' },
+  { key: 'ALL',     label: 'All'     },
   { key: 'FLAGGED', label: 'Flagged' },
-  { key: 'UP',      label: 'Up Only' },
-  { key: 'DOWN',    label: 'Down Only' },
-  { key: 'NEW',     label: 'New' },
+  { key: 'UP',      label: 'Up'      },
+  { key: 'DOWN',    label: 'Down'    },
+  { key: 'NEW',     label: 'New'     },
   { key: 'MISSING', label: 'Missing' },
 ]
 
-const CHIP_COLORS = {
-  ALL:     '#64748b',
-  FLAGGED: '#ff9f43',
-  UP:      '#00e5a0',
-  DOWN:    '#ff4d6a',
-  NEW:     '#0090ff',
-  MISSING: '#4b5563',
+const CHIP_ACTIVE = {
+  ALL:     { color: 'var(--blue)',  bg: 'var(--blue-bg)',  border: 'var(--blue-border)'  },
+  FLAGGED: { color: 'var(--amber)', bg: 'var(--amber-bg)', border: 'var(--amber-border)' },
+  UP:      { color: 'var(--green)', bg: 'var(--green-bg)', border: 'var(--green-border)' },
+  DOWN:    { color: 'var(--red)',   bg: 'var(--red-bg)',   border: 'var(--red-border)'   },
+  NEW:     { color: 'var(--blue)',  bg: 'var(--blue-bg)',  border: 'var(--blue-border)'  },
+  MISSING: { color: 'var(--grey)',  bg: 'var(--grey-bg)',  border: 'var(--grey-border)'  },
 }
 
 export default function FilterBar({
@@ -23,26 +23,38 @@ export default function FilterBar({
   threshold, onThresholdChange,
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-      {/* chips */}
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      flexWrap: 'wrap',
+    }}>
+      {/* Filter chips */}
       <div style={{ display: 'flex', gap: 4 }}>
         {CHIPS.map(c => {
           const active = filterChip === c.key
-          const color  = CHIP_COLORS[c.key]
+          const theme  = CHIP_ACTIVE[c.key]
           return (
             <button
               key={c.key}
               onClick={() => onChipChange(c.key)}
               style={{
-                padding: '4px 10px',
+                padding: '3px 10px',
                 fontFamily: 'var(--font-mono)',
                 fontSize: 11,
-                background: active ? color + '20' : 'transparent',
-                border: `1px solid ${active ? color : 'var(--border)'}`,
-                color: active ? color : 'var(--text-muted)',
-                letterSpacing: '0.03em',
-                transition: 'all 0.12s',
+                fontWeight: active ? 600 : 400,
+                background: active ? theme.bg    : 'transparent',
+                border:     active
+                  ? `1px solid ${theme.border}`
+                  : '1px solid var(--border)',
+                color: active ? theme.color : 'var(--tx-lo)',
+                borderRadius: 20,
+                letterSpacing: '0.02em',
+                transition: 'all 0.1s',
+                cursor: 'pointer',
               }}
+              onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--bg-inset)'; e.currentTarget.style.color = 'var(--tx-body)' } }}
+              onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent';     e.currentTarget.style.color = 'var(--tx-lo)'   } }}
             >
               {c.label}
             </button>
@@ -52,7 +64,7 @@ export default function FilterBar({
 
       <div style={{ flex: 1, minWidth: 0 }} />
 
-      {/* search */}
+      {/* Search */}
       <input
         type="text"
         placeholder="Search material / description…"
@@ -60,31 +72,27 @@ export default function FilterBar({
         onChange={e => onSearchChange(e.target.value)}
         style={{
           padding: '4px 10px',
-          width: 240,
-          border: '1px solid var(--border)',
-          background: 'var(--bg-surface)',
-          color: 'var(--text-primary)',
+          width: 230,
+          borderRadius: 4,
         }}
       />
 
-      {/* sloc */}
+      {/* SLoc */}
       <select
         value={sloc}
         onChange={e => onSlocChange(e.target.value)}
-        style={{
-          padding: '4px 8px',
-          border: '1px solid var(--border)',
-          background: 'var(--bg-surface)',
-          color: 'var(--text-primary)',
-        }}
+        style={{ padding: '4px 8px', borderRadius: 4 }}
       >
         {slocs.map(s => (
           <option key={s} value={s}>{s === 'ALL' ? 'All SLocs' : `SLoc ${s}`}</option>
         ))}
       </select>
 
-      {/* threshold */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)' }}>
+      {/* Threshold */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 5,
+        fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--tx-lo)',
+      }}>
         <span>Flag &gt;</span>
         <input
           type="number"
@@ -92,7 +100,7 @@ export default function FilterBar({
           max={1000}
           value={threshold}
           onChange={e => onThresholdChange(Number(e.target.value) || 0)}
-          style={{ width: 48, padding: '4px 6px', textAlign: 'right' }}
+          style={{ width: 46, padding: '4px 6px', textAlign: 'right', borderRadius: 4 }}
         />
         <span>%</span>
       </div>

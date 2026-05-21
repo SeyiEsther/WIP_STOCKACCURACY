@@ -160,12 +160,20 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
-      <Header lastUpdated={lastUpdated} onRefresh={refresh} onExport={handleExport} loading={loading} />
+      <Header lastUpdated={lastUpdated} onRefresh={refresh} onExport={handleExport} loading={loading} error={error} />
 
       <main style={{ flex: 1, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {error && (
-          <div style={{ background: '#fff0f2', border: '1px solid var(--accent-red)', color: 'var(--accent-red)', padding: '10px 14px', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
-            Error: {error}
+          <div style={{
+            background: 'var(--red-bg)',
+            border: '1px solid var(--red-border)',
+            borderLeft: '3px solid var(--red)',
+            color: 'var(--red)',
+            padding: '10px 14px',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 12,
+          }}>
+            ✕ {error}
           </div>
         )}
 
