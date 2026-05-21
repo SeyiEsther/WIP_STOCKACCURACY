@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import Header from './components/Header.jsx'
 import StatCards from './components/StatCards.jsx'
 import TrendChart from './components/TrendChart.jsx'
+import DailyComparisonChart from './components/DailyComparisonChart.jsx'
 import FilterBar from './components/FilterBar.jsx'
 import StockTable from './components/StockTable.jsx'
 
@@ -170,7 +171,10 @@ export default function App() {
 
         <StatCards summary={liveSummary} activeCard={activeCard} onCardClick={handleCardClick} />
 
-        <TrendChart data={trend} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <TrendChart data={trend} />
+          <DailyComparisonChart data={normalised} threshold={threshold} />
+        </div>
 
         <FilterBar
           filterChip={filterChip}
