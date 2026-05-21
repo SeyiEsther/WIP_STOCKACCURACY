@@ -11,7 +11,7 @@ public class StockComparison
     public decimal PctChange { get; set; }
     public string Status { get; set; } = string.Empty;
     public string BaseUnit { get; set; } = string.Empty;
-    public string MRPController { get; set; } = string.Empty;
+    public string? MRPController { get; set; }
     public DateTime TodayDate { get; set; }
     public DateTime YesterdayDate { get; set; }
 }
