@@ -6,6 +6,7 @@ import DailyComparisonChart from './components/DailyComparisonChart.jsx'
 import FilterBar            from './components/FilterBar.jsx'
 import StockTable           from './components/StockTable.jsx'
 import NotificationPanel    from './components/NotificationPanel.jsx'
+import OverviewPage         from './components/OverviewPage.jsx'
 
 const API_BASE = '/api/stock'
 
@@ -117,9 +118,55 @@ function computeABC(rows) {
   return map
 }
 
+// ─── Nav bar ─────────────────────────────────────────────────────────────────
+function NavBar({ page, onPageChange }) {
+  const tabs = [
+    { key: 'overview', label: 'Overview' },
+    { key: 'monitor',  label: 'Stock Monitor' },
+  ]
+  return (
+    <div style={{
+      background: 'var(--bg-surface)',
+      borderBottom: '1px solid var(--border)',
+      padding: '0 20px',
+      display: 'flex',
+      gap: 0,
+      flexShrink: 0,
+    }}>
+      {tabs.map(t => {
+        const active = page === t.key
+        return (
+          <button
+            key={t.key}
+            onClick={() => onPageChange(t.key)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              borderBottom: active ? '2px solid var(--blue)' : '2px solid transparent',
+              padding: '8px 18px',
+              fontFamily: 'var(--font-sans)',
+              fontSize: 12,
+              fontWeight: active ? 600 : 400,
+              color: active ? 'var(--blue)' : 'var(--tx-lo)',
+              cursor: 'pointer',
+              transition: 'color 0.12s, border-color 0.12s',
+              marginBottom: -1,
+            }}
+            onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--tx-body)' }}
+            onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--tx-lo)' }}
+          >
+            {t.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 export default function App() {
   const [trendDays, setTrendDays] = useState(5)
+  const [page, setPage] = useState('overview')
 
   const {
     rows, summary, trend, materialTrends,
@@ -285,62 +332,75 @@ export default function App() {
         onBellClick={() => setNotifOpen(o => !o)}
       />
 
-      <main style={{ flex: 1, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {error && (
-          <div style={{
-            background: 'var(--red-bg)',
-            border: '1px solid var(--red-border)',
-            borderLeft: '3px solid var(--red)',
-            color: 'var(--red)',
-            padding: '10px 14px',
-            fontFamily: 'var(--font-mono)',
-            fontSize: 12,
-          }}>
-            ✕ {error}
-          </div>
-        )}
+      <NavBar page={page} onPageChange={setPage} />
 
-        <StatCards summary={liveSummary} activeCard={activeCard} onCardClick={handleCardClick} />
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <TrendChart data={trend} />
-          <DailyComparisonChart data={withABC} threshold={threshold} />
+      {error && (
+        <div style={{
+          background: 'var(--red-bg)',
+          border: '1px solid var(--red-border)',
+          borderLeft: '3px solid var(--red)',
+          color: 'var(--red)',
+          padding: '10px 20px',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 12,
+          flexShrink: 0,
+        }}>
+          ✕ {error}
         </div>
+      )}
 
-        <FilterBar
-          filterChip={filterChip}
-          onChipChange={(c) => { setFilterChip(c); setActiveCard('ALL') }}
-          search={search}
-          onSearchChange={setSearch}
-          sloc={sloc}
-          slocs={slocs}
-          onSlocChange={setSloc}
-          threshold={threshold}
-          onThresholdChange={setThreshold}
-          abcFilter={abcFilter}
-          onAbcFilterChange={setAbcFilter}
-          trendOnly={trendOnly}
-          onTrendOnlyChange={setTrendOnly}
-          trendDays={trendDays}
-          onTrendDaysChange={setTrendDays}
-          hideAcked={hideAcked}
-          onHideAckedChange={setHideAcked}
-          ackedCount={investigatedCount}
-          hasAbc={!!abcMap}
-        />
-
-        <StockTable
-          rows={sorted}
+      {page === 'overview' ? (
+        <OverviewPage
+          rows={withABC}
+          summary={liveSummary}
+          trend={trend}
           loading={loading}
-          sortKey={sortKey}
-          sortDir={sortDir}
-          onSort={handleSort}
           threshold={threshold}
-          investigated={investigated}
-          onAck={handleInvestigate}
-          hasAbc={!!abcMap}
         />
-      </main>
+      ) : (
+        <main style={{ flex: 1, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <StatCards summary={liveSummary} activeCard={activeCard} onCardClick={handleCardClick} />
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <TrendChart data={trend} />
+            <DailyComparisonChart data={withABC} threshold={threshold} />
+          </div>
+
+          <FilterBar
+            filterChip={filterChip}
+            onChipChange={(c) => { setFilterChip(c); setActiveCard('ALL') }}
+            search={search}
+            onSearchChange={setSearch}
+            sloc={sloc}
+            slocs={slocs}
+            onSlocChange={setSloc}
+            threshold={threshold}
+            onThresholdChange={setThreshold}
+            abcFilter={abcFilter}
+            onAbcFilterChange={setAbcFilter}
+            trendOnly={trendOnly}
+            onTrendOnlyChange={setTrendOnly}
+            trendDays={trendDays}
+            onTrendDaysChange={setTrendDays}
+            hideAcked={hideAcked}
+            onHideAckedChange={setHideAcked}
+            ackedCount={investigatedCount}
+            hasAbc={!!abcMap}
+          />
+
+          <StockTable
+            rows={sorted}
+            loading={loading}
+            sortKey={sortKey}
+            sortDir={sortDir}
+            onSort={handleSort}
+            threshold={threshold}
+            investigated={investigated}
+            onAck={handleInvestigate}
+            hasAbc={!!abcMap}
+          />
+        </main>
+      )}
 
       {/* Notification panel */}
       {notifOpen && (
