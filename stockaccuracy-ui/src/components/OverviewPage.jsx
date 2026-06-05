@@ -215,7 +215,7 @@ function TrendBarChart({ trendData }) {
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={240}>
-          <BarChart data={trendData} margin={{ top: 4, right: 10, left: 16, bottom: 30 }}>
+          <BarChart data={trendData} margin={{ top: 4, right: 10, left: 0, bottom: 44 }}>
             <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
             <XAxis
               dataKey="date"
@@ -226,26 +226,13 @@ function TrendBarChart({ trendData }) {
               angle={-35}
               textAnchor="end"
               height={50}
-              label={{
-                value: 'Snapshot Date',
-                position: 'insideBottom',
-                offset: -10,
-                style: { ...AXIS_STYLE, fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' },
-              }}
             />
             <YAxis
               allowDecimals={false}
               tick={AXIS_STYLE}
               tickLine={false}
               axisLine={false}
-              width={42}
-              label={{
-                value: 'Flagged Items',
-                angle: -90,
-                position: 'insideLeft',
-                offset: -4,
-                style: { ...AXIS_STYLE, fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' },
-              }}
+              width={32}
             />
             <Tooltip
               formatter={(v) => [`${v} materials`, 'Flagged']}
@@ -287,7 +274,7 @@ function VolatileChart({ data }) {
           <BarChart
             layout="vertical"
             data={data}
-            margin={{ top: 4, right: 24, left: 0, bottom: 28 }}
+            margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
           >
             <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 3" />
             <XAxis
@@ -296,12 +283,6 @@ function VolatileChart({ data }) {
               tickLine={false}
               axisLine={{ stroke: 'var(--border)' }}
               tickFormatter={v => `${v}%`}
-              label={{
-                value: '| % Change |',
-                position: 'insideBottom',
-                offset: -12,
-                style: { ...AXIS_STYLE, fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' },
-              }}
             />
             <YAxis
               type="category"
@@ -310,13 +291,6 @@ function VolatileChart({ data }) {
               tick={{ ...AXIS_STYLE, fill: 'var(--tx-body)' }}
               tickLine={false}
               axisLine={false}
-              label={{
-                value: 'Material',
-                angle: -90,
-                position: 'insideLeft',
-                offset: 6,
-                style: { ...AXIS_STYLE, fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' },
-              }}
             />
             <Tooltip
               formatter={(v, _name, { payload }) => [`${v.toFixed(1)}%`, payload.desc || payload.label]}

@@ -60,7 +60,7 @@ export default function TrendChart({ data }) {
         <Empty>No historical data yet — trend builds as daily snapshots accumulate</Empty>
       ) : (
         <ResponsiveContainer width="100%" height={220}>
-          <AreaChart data={chartData} margin={{ top: 4, right: 16, left: 16, bottom: 20 }}>
+          <AreaChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
             <defs>
               <linearGradient id="gradTracked" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%"  stopColor="#0969da" stopOpacity={0.12} />
@@ -77,15 +77,13 @@ export default function TrendChart({ data }) {
               tick={{ fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 10 }}
               tickLine={false}
               axisLine={{ stroke: 'var(--border)' }}
-              label={{ value: 'Snapshot Date', position: 'insideBottom', offset: -2, style: AXIS_LBL_STYLE }}
             />
             <YAxis
               tick={{ fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 10 }}
               tickLine={false}
               axisLine={false}
-              width={42}
+              width={34}
               allowDecimals={false}
-              label={{ value: 'No. of Materials', angle: -90, position: 'insideLeft', offset: 6, style: AXIS_LBL_STYLE }}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend wrapperStyle={{ fontFamily: 'IBM Plex Mono', fontSize: 10, paddingTop: 8 }} />
