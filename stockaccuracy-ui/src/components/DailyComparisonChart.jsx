@@ -132,8 +132,8 @@ export default function DailyComparisonChart({ data, threshold = 10 }) {
               type="linear"
               dataKey="pctChange"
               name="% Change"
-              stroke="var(--border-sub)"
-              strokeWidth={1.5}
+              stroke="transparent"
+              strokeWidth={0}
               dot={<CustomDot />}
               activeDot={false}
             />
