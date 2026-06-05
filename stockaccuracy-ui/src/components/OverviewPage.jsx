@@ -143,7 +143,7 @@ function DonutChart({ title, data, centerLines, noDataMsg }) {
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(val, name) => [val, name]}
+                  formatter={(val, name) => [`${val} materials`, name]}
                   contentStyle={{
                     background: 'var(--bg-surface)',
                     border: '1px solid var(--border)',
@@ -194,6 +194,8 @@ function DonutChart({ title, data, centerLines, noDataMsg }) {
 }
 
 // ─── 14-day flagged bar chart ─────────────────────────────────────────────────
+const AXIS_STYLE = { fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 10 }
+
 function TrendBarChart({ trendData }) {
   const hasAny = trendData.some(d => d.flagged != null)
   return (
@@ -201,35 +203,48 @@ function TrendBarChart({ trendData }) {
       <SectionLabel>Flagged Materials Per Day — 14-Day Trend</SectionLabel>
       {!hasAny ? (
         <div style={{
-          height: 220,
+          height: 240,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--tx-faint)',
         }}>
           Building history…
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={trendData} margin={{ top: 4, right: 10, left: 0, bottom: 0 }}>
+        <ResponsiveContainer width="100%" height={240}>
+          <BarChart data={trendData} margin={{ top: 4, right: 10, left: 16, bottom: 30 }}>
             <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
             <XAxis
               dataKey="date"
-              tick={{ fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 10 }}
+              tick={AXIS_STYLE}
               tickLine={false}
               axisLine={{ stroke: 'var(--border)' }}
               interval={0}
               angle={-35}
               textAnchor="end"
-              height={44}
+              height={50}
+              label={{
+                value: 'Snapshot Date',
+                position: 'insideBottom',
+                offset: -10,
+                style: { ...AXIS_STYLE, fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' },
+              }}
             />
             <YAxis
               allowDecimals={false}
-              tick={{ fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 10 }}
+              tick={AXIS_STYLE}
               tickLine={false}
               axisLine={false}
-              width={30}
+              width={42}
+              label={{
+                value: 'Flagged Items',
+                angle: -90,
+                position: 'insideLeft',
+                offset: -4,
+                style: { ...AXIS_STYLE, fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' },
+              }}
             />
             <Tooltip
-              formatter={(v) => [v, 'Flagged']}
+              formatter={(v) => [`${v} materials`, 'Flagged']}
               contentStyle={{
                 background: 'var(--bg-surface)',
                 border: '1px solid var(--border)',
@@ -238,7 +253,7 @@ function TrendBarChart({ trendData }) {
                 boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
               }}
             />
-            <Bar dataKey="flagged" radius={[3, 3, 0, 0]} maxBarSize={36}>
+            <Bar dataKey="flagged" name="Flagged materials" radius={[3, 3, 0, 0]} maxBarSize={36}>
               {trendData.map((entry, i) => (
                 <Cell key={i} fill={entry.color} fillOpacity={0.85} />
               ))}
@@ -254,40 +269,54 @@ function TrendBarChart({ trendData }) {
 function VolatileChart({ data }) {
   return (
     <Card style={{ flex: 1 }}>
-      <SectionLabel>Top 10 Most Volatile Materials — Avg % Change</SectionLabel>
+      <SectionLabel>Top 10 Most Volatile — Absolute % Change (Today)</SectionLabel>
       {data.length === 0 ? (
         <div style={{
-          height: 220,
+          height: 240,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--tx-faint)',
         }}>
           No data
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={220}>
+        <ResponsiveContainer width="100%" height={240}>
           <BarChart
             layout="vertical"
             data={data}
-            margin={{ top: 0, right: 16, left: 0, bottom: 0 }}
+            margin={{ top: 4, right: 24, left: 0, bottom: 28 }}
           >
             <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 3" />
             <XAxis
               type="number"
-              tick={{ fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 10 }}
+              tick={AXIS_STYLE}
               tickLine={false}
               axisLine={{ stroke: 'var(--border)' }}
               tickFormatter={v => `${v}%`}
+              label={{
+                value: '| % Change |',
+                position: 'insideBottom',
+                offset: -12,
+                style: { ...AXIS_STYLE, fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' },
+              }}
             />
             <YAxis
               type="category"
               dataKey="label"
-              width={90}
-              tick={{ fill: 'var(--tx-body)', fontFamily: 'IBM Plex Mono', fontSize: 10 }}
+              width={88}
+              tick={{ ...AXIS_STYLE, fill: 'var(--tx-body)' }}
               tickLine={false}
               axisLine={false}
+              label={{
+                value: 'Material',
+                angle: -90,
+                position: 'insideLeft',
+                offset: 6,
+                style: { ...AXIS_STYLE, fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' },
+              }}
             />
             <Tooltip
-              formatter={(v, name, { payload }) => [`${v.toFixed(1)}%`, payload.desc || 'Change']}
+              formatter={(v, _name, { payload }) => [`${v.toFixed(1)}%`, payload.desc || payload.label]}
+              labelFormatter={() => ''}
               contentStyle={{
                 background: 'var(--bg-surface)',
                 border: '1px solid var(--border)',
@@ -296,7 +325,7 @@ function VolatileChart({ data }) {
                 boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
               }}
             />
-            <Bar dataKey="pct" radius={[0, 3, 3, 0]} maxBarSize={18}>
+            <Bar dataKey="pct" name="Absolute % Change" radius={[0, 3, 3, 0]} maxBarSize={18}>
               {data.map((entry, i) => (
                 <Cell key={i} fill={entry.pct > 200 ? C.red : entry.pct > 50 ? C.orange : C.green} fillOpacity={0.85} />
               ))}
