@@ -215,7 +215,7 @@ function TrendBarChart({ trendData }) {
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={240}>
-          <BarChart data={trendData} margin={{ top: 4, right: 10, left: 0, bottom: 44 }}>
+          <BarChart data={trendData} margin={{ top: 4, right: 10, left: 10, bottom: 44 }}>
             <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
             <XAxis
               dataKey="date"
@@ -232,7 +232,8 @@ function TrendBarChart({ trendData }) {
               tick={AXIS_STYLE}
               tickLine={false}
               axisLine={false}
-              width={32}
+              width={40}
+              label={{ value: 'Flagged', angle: -90, position: 'insideLeft', offset: 6, style: AXIS_STYLE }}
             />
             <Tooltip
               formatter={(v) => [`${v} materials`, 'Flagged']}
@@ -274,7 +275,7 @@ function VolatileChart({ data }) {
           <BarChart
             layout="vertical"
             data={data}
-            margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
+            margin={{ top: 4, right: 16, left: 8, bottom: 24 }}
           >
             <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 3" />
             <XAxis
@@ -283,14 +284,16 @@ function VolatileChart({ data }) {
               tickLine={false}
               axisLine={{ stroke: 'var(--border)' }}
               tickFormatter={v => `${v}%`}
+              label={{ value: '% Change', position: 'insideBottom', offset: -8, style: AXIS_STYLE }}
             />
             <YAxis
               type="category"
               dataKey="label"
-              width={88}
+              width={96}
               tick={{ ...AXIS_STYLE, fill: 'var(--tx-body)' }}
               tickLine={false}
               axisLine={false}
+              label={{ value: 'Material No.', angle: -90, position: 'insideLeft', offset: 10, style: AXIS_STYLE }}
             />
             <Tooltip
               formatter={(v, _name, { payload }) => [`${v.toFixed(1)}%`, payload.desc || payload.label]}
