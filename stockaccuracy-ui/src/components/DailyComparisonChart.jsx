@@ -88,7 +88,7 @@ export default function DailyComparisonChart({ data, threshold = 10 }) {
           <BarChart
             layout="vertical"
             data={chartData}
-            margin={{ top: 4, right: 64, left: 8, bottom: 4 }}
+            margin={{ top: 4, right: 64, left: 8, bottom: 28 }}
           >
             <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 3" />
             <XAxis
@@ -97,14 +97,16 @@ export default function DailyComparisonChart({ data, threshold = 10 }) {
               tickFormatter={v => `${v}%`}
               tickLine={false}
               axisLine={{ stroke: 'var(--border)' }}
+              label={{ value: '% Change', position: 'insideBottom', offset: -10, style: AXIS_LBL_STYLE }}
             />
             <YAxis
               type="category"
               dataKey="label"
-              width={72}
+              width={80}
               tick={{ fill: 'var(--tx-body)', fontFamily: 'IBM Plex Mono', fontSize: 10 }}
               tickLine={false}
               axisLine={false}
+              label={{ value: 'Material No.', angle: -90, position: 'insideLeft', offset: 10, style: AXIS_LBL_STYLE }}
             />
             <ReferenceLine x={0} stroke="var(--border-sub)" strokeWidth={1.5} />
             <ReferenceLine x={ threshold} stroke="var(--amber)" strokeDasharray="4 3" strokeOpacity={0.6} strokeWidth={1}
