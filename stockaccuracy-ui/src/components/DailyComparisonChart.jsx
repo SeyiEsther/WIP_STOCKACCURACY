@@ -103,21 +103,41 @@ export default function DailyComparisonChart({ data, threshold = 10 }) {
               interval={0}
               tickLine={false}
               axisLine={{ stroke: 'var(--border)' }}
+              label={{
+                value: 'Material Number',
+                position: 'insideBottom',
+                offset: -4,
+                style: { fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' },
+              }}
             />
             <YAxis
               tick={{ fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 10 }}
               tickFormatter={v => `${v}%`}
               tickLine={false}
               axisLine={false}
-              width={46}
+              width={50}
+              label={{
+                value: '% Change',
+                angle: -90,
+                position: 'insideLeft',
+                offset: 8,
+                style: { fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' },
+              }}
             />
-            <ReferenceLine y={0}          stroke="var(--border-sub)" strokeWidth={1.5} />
-            <ReferenceLine y={ threshold} stroke="#7d4e00" strokeDasharray="4 3" strokeOpacity={0.6} strokeWidth={1} />
-            <ReferenceLine y={-threshold} stroke="#7d4e00" strokeDasharray="4 3" strokeOpacity={0.6} strokeWidth={1} />
+            <ReferenceLine y={0} stroke="var(--border-sub)" strokeWidth={1.5}
+              label={{ value: '0%', position: 'right', style: { fill: 'var(--tx-faint)', fontFamily: 'IBM Plex Mono', fontSize: 9 } }}
+            />
+            <ReferenceLine y={ threshold} stroke="#7d4e00" strokeDasharray="4 3" strokeOpacity={0.6} strokeWidth={1}
+              label={{ value: `+${threshold}% flag`, position: 'right', style: { fill: '#7d4e00', fontFamily: 'IBM Plex Mono', fontSize: 9 } }}
+            />
+            <ReferenceLine y={-threshold} stroke="#7d4e00" strokeDasharray="4 3" strokeOpacity={0.6} strokeWidth={1}
+              label={{ value: `-${threshold}% flag`, position: 'right', style: { fill: '#7d4e00', fontFamily: 'IBM Plex Mono', fontSize: 9 } }}
+            />
             <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'var(--border-sub)', strokeWidth: 1 }} />
             <Line
               type="linear"
               dataKey="pctChange"
+              name="% Change"
               stroke="var(--border-sub)"
               strokeWidth={1.5}
               dot={<CustomDot />}
