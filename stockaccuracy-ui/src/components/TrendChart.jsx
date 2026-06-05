@@ -6,6 +6,11 @@ import {
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
+const AXIS_LBL_STYLE = {
+  fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono',
+  fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
+}
+
 function fmtDate(iso) {
   if (!iso) return ''
   const d = new Date(iso)
@@ -72,12 +77,7 @@ export default function TrendChart({ data }) {
               tick={{ fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 10 }}
               tickLine={false}
               axisLine={{ stroke: 'var(--border)' }}
-              label={{
-                value: 'Snapshot Date',
-                position: 'insideBottom',
-                offset: -2,
-                style: { fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' },
-              }}
+              label={{ value: 'Snapshot Date', position: 'insideBottom', offset: -2, style: AXIS_LBL_STYLE }}
             />
             <YAxis
               tick={{ fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 10 }}
@@ -85,13 +85,7 @@ export default function TrendChart({ data }) {
               axisLine={false}
               width={42}
               allowDecimals={false}
-              label={{
-                value: 'No. of Materials',
-                angle: -90,
-                position: 'insideLeft',
-                offset: 6,
-                style: { fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' },
-              }}
+              label={{ value: 'No. of Materials', angle: -90, position: 'insideLeft', offset: 6, style: AXIS_LBL_STYLE }}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend wrapperStyle={{ fontFamily: 'IBM Plex Mono', fontSize: 10, paddingTop: 8 }} />

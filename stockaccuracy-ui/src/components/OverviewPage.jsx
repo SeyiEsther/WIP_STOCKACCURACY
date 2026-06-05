@@ -4,12 +4,18 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts'
 
-// ─── colour palette ─────────────────────────────────────────────────────────
+// ─── hex colours for Recharts (cannot use CSS vars as SVG fill values) ───────
 const C = {
   green:  '#1a7f37',
   orange: '#d97706',
   red:    '#cf222e',
   blue:   '#0969da',
+}
+
+// ─── shared axis label style ─────────────────────────────────────────────────
+const AXIS_STYLE = {
+  fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono',
+  fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
 }
 
 const SLOC_PALETTE = [
@@ -194,8 +200,6 @@ function DonutChart({ title, data, centerLines, noDataMsg }) {
 }
 
 // ─── 14-day flagged bar chart ─────────────────────────────────────────────────
-const AXIS_STYLE = { fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 10 }
-
 function TrendBarChart({ trendData }) {
   const hasAny = trendData.some(d => d.flagged != null)
   return (
@@ -507,7 +511,7 @@ export default function OverviewPage({ rows, summary, trend, loading, threshold 
 
   // ─── render ───────────────────────────────────────────────────────────────
   return (
-    <main style={{ flex: 1, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <main style={{ flex: 1, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
       {loading && rows.length === 0 && (
         <div style={{
           fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--tx-lo)',
@@ -519,34 +523,14 @@ export default function OverviewPage({ rows, summary, trend, loading, threshold 
 
       {/* Row 1 — 4 stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
-        <StatCard
-          label="Total Materials Tracked"
-          value={totalTracked}
-          color={C.blue}
-          bg="#ddf4ff"
-          border="#80ccff"
-        />
-        <StatCard
-          label="Flagged Today"
-          value={flaggedToday}
-          color={C.orange}
-          bg="#fff7ed"
-          border="#fed7aa"
-        />
-        <StatCard
-          label="New Materials"
-          value={newToday}
-          color={C.green}
-          bg="#dafbe1"
-          border="#82cfad"
-        />
-        <StatCard
-          label="Missing Materials"
-          value={missingToday}
-          color={C.red}
-          bg="#ffebe9"
-          border="#f5a9a7"
-        />
+        <StatCard label="Total Materials Tracked" value={totalTracked}
+          color="var(--blue)"   bg="var(--blue-bg)"   border="var(--blue-border)"   />
+        <StatCard label="Flagged Today"           value={flaggedToday}
+          color="var(--orange)" bg="var(--orange-bg)" border="var(--orange-border)" />
+        <StatCard label="New Materials"           value={newToday}
+          color="var(--green)"  bg="var(--green-bg)"  border="var(--green-border)"  />
+        <StatCard label="Missing Materials"       value={missingToday}
+          color="var(--red)"    bg="var(--red-bg)"    border="var(--red-border)"    />
       </div>
 
       {/* Row 2 — 3 donut charts */}

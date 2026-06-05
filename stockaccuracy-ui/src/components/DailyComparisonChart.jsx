@@ -6,6 +6,11 @@ import {
 
 const OUTLIER_THRESHOLD = 500   // % — excluded from chart, shown in list below
 
+const AXIS_LBL_STYLE = {
+  fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono',
+  fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
+}
+
 function truncate(s, n) {
   return s && s.length > n ? s.slice(0, n - 1) + '…' : (s || '')
 }
@@ -93,7 +98,7 @@ export default function DailyComparisonChart({ data, threshold = 10 }) {
         <Empty>No comparison data available</Empty>
       ) : (
         <ResponsiveContainer width="100%" height={220}>
-          <LineChart data={chartData} margin={{ top: 6, right: 16, left: 0, bottom: 52 }}>
+          <LineChart data={chartData} margin={{ top: 6, right: 80, left: 16, bottom: 52 }}>
             <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
             <XAxis
               dataKey="label"
@@ -103,12 +108,7 @@ export default function DailyComparisonChart({ data, threshold = 10 }) {
               interval={0}
               tickLine={false}
               axisLine={{ stroke: 'var(--border)' }}
-              label={{
-                value: 'Material Number',
-                position: 'insideBottom',
-                offset: -4,
-                style: { fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' },
-              }}
+              label={{ value: 'Material Number', position: 'insideBottom', offset: -4, style: AXIS_LBL_STYLE }}
             />
             <YAxis
               tick={{ fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 10 }}
@@ -116,22 +116,16 @@ export default function DailyComparisonChart({ data, threshold = 10 }) {
               tickLine={false}
               axisLine={false}
               width={50}
-              label={{
-                value: '% Change',
-                angle: -90,
-                position: 'insideLeft',
-                offset: 8,
-                style: { fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' },
-              }}
+              label={{ value: '% Change', angle: -90, position: 'insideLeft', offset: 8, style: AXIS_LBL_STYLE }}
             />
             <ReferenceLine y={0} stroke="var(--border-sub)" strokeWidth={1.5}
               label={{ value: '0%', position: 'right', style: { fill: 'var(--tx-faint)', fontFamily: 'IBM Plex Mono', fontSize: 9 } }}
             />
-            <ReferenceLine y={ threshold} stroke="#7d4e00" strokeDasharray="4 3" strokeOpacity={0.6} strokeWidth={1}
-              label={{ value: `+${threshold}% flag`, position: 'right', style: { fill: '#7d4e00', fontFamily: 'IBM Plex Mono', fontSize: 9 } }}
+            <ReferenceLine y={ threshold} stroke="var(--amber)" strokeDasharray="4 3" strokeOpacity={0.6} strokeWidth={1}
+              label={{ value: `+${threshold}% flag`, position: 'right', style: { fill: 'var(--amber)', fontFamily: 'IBM Plex Mono', fontSize: 9 } }}
             />
-            <ReferenceLine y={-threshold} stroke="#7d4e00" strokeDasharray="4 3" strokeOpacity={0.6} strokeWidth={1}
-              label={{ value: `-${threshold}% flag`, position: 'right', style: { fill: '#7d4e00', fontFamily: 'IBM Plex Mono', fontSize: 9 } }}
+            <ReferenceLine y={-threshold} stroke="var(--amber)" strokeDasharray="4 3" strokeOpacity={0.6} strokeWidth={1}
+              label={{ value: `-${threshold}% flag`, position: 'right', style: { fill: 'var(--amber)', fontFamily: 'IBM Plex Mono', fontSize: 9 } }}
             />
             <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'var(--border-sub)', strokeWidth: 1 }} />
             <Line
