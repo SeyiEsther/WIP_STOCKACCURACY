@@ -94,47 +94,6 @@ function saveInvestigated(obj) {
   try { localStorage.setItem(IID_KEY, JSON.stringify(obj)) } catch {}
 }
 
-// ─── ABC classification (client-side mock) ──────────────────────────────────
-// Uses a seeded hash of the material key so the class is stable across renders
-// but doesn't require unitValue from SAP.  Distribution: 10% A / 20% B / 70% C.
-// NOTE: This is a PREVIEW mock — real SAP ABC indicator data is pending.
-function seededRand(str) {
-  let h = 2166136261 >>> 0
-  for (let i = 0; i < str.length; i++) {
-    h = Math.imul(h ^ str.charCodeAt(i), 16777619) >>> 0
-  }
-  return h / 0xffffffff
-}
-
-function computeABC(rows) {
-  if (!rows.length) return new Map()
-
-  // If real unitValue data is available use value-based ranking; otherwise mock.
-  const hasValue = rows.some(r => r.unitValue != null)
-  if (hasValue) {
-    const sorted = [...rows].sort((a, b) => {
-      const va = (a.unitValue ?? 0) * Math.abs(a.qtyToday ?? 0)
-      const vb = (b.unitValue ?? 0) * Math.abs(b.qtyToday ?? 0)
-      return vb - va
-    })
-    const n    = sorted.length
-    const aEnd = Math.max(1, Math.ceil(n * 0.10))
-    const bEnd = Math.max(2, Math.ceil(n * 0.30))
-    const map  = new Map()
-    sorted.forEach((r, i) => {
-      map.set(iid(r.materialNumber, r.sLoc), i < aEnd ? 'A' : i < bEnd ? 'B' : 'C')
-    })
-    return map
-  }
-
-  // Seeded-random mock: deterministic per material, ~10% A / 20% B / 70% C
-  const map = new Map()
-  rows.forEach(r => {
-    const rand = seededRand(iid(r.materialNumber, r.sLoc))
-    map.set(iid(r.materialNumber, r.sLoc), rand < 0.10 ? 'A' : rand < 0.30 ? 'B' : 'C')
-  })
-  return map
-}
 
 // ─── Nav bar ─────────────────────────────────────────────────────────────────
 function NavBar({ page, onPageChange }) {
@@ -243,8 +202,25 @@ export default function App() {
     })
   }, [normalised, materialTrends])
 
-  // ── ABC classification (always on — mock when SAP unitValue absent) ──────
-  const abcMap = useMemo(() => computeABC(withTrends), [withTrends])
+  // ── ABC classification — assigned once when data loads, stored in state ──
+  // Random distribution: ~10% A / 20% B / 70% C. Stable across re-renders.
+  const [abcMap, setAbcMap] = useState(() => new Map())
+
+  useEffect(() => {
+    if (!normalised.length) return
+    setAbcMap(prev => {
+      const firstKey = iid(normalised[0].materialNumber, normalised[0].sLoc)
+      if (prev.has(firstKey) && prev.size === normalised.length) return prev
+      const map = new Map()
+      normalised.forEach(r => {
+        const rand = Math.random()
+        map.set(iid(r.materialNumber, r.sLoc), rand < 0.10 ? 'A' : rand < 0.30 ? 'B' : 'C')
+      })
+      return map
+    })
+  }, [normalised])
+
+  const abcIsMock = !normalised.some(r => r.unitValue != null)
 
   const withABC = useMemo(() =>
     withTrends.map(r => ({
@@ -434,7 +410,7 @@ export default function App() {
             onHideAckedChange={setHideAcked}
             ackedCount={investigatedCount}
             hasAbc={true}
-            abcIsMock={!withTrends.some(r => r.unitValue != null)}
+            abcIsMock={abcIsMock}
           />
 
           <StockTable

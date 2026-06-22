@@ -40,9 +40,9 @@ const STATUS_DEF = {
 }
 
 const ABC_DEF = {
-  A: { color: 'var(--amber)', bg: 'var(--amber-bg)', border: 'var(--amber-border)' },
-  B: { color: 'var(--blue)',  bg: 'var(--blue-bg)',  border: 'var(--blue-border)'  },
-  C: { color: 'var(--grey)',  bg: 'var(--grey-bg)',  border: 'var(--grey-border)'  },
+  A: { color: '#92400e', bg: '#fef3c7', border: '#fcd34d' },                        // gold / yellow
+  B: { color: 'var(--grey)',  bg: 'var(--grey-bg)',  border: 'var(--grey-border)'  }, // grey
+  C: { color: 'var(--blue)',  bg: 'var(--blue-bg)',  border: 'var(--blue-border)'  }, // light blue
 }
 
 // ─── column definitions ───────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ function buildCols(hasAbc) {
     { key: 'materialDesc',   label: 'Description', align: 'left',   width: 'auto'   },
   ]
   if (hasAbc)
-    cols.push({ key: 'abcClass', label: 'ABC', align: 'center', width: 42, sortKey: null })
+    cols.push({ key: 'abcClass', label: 'Class', align: 'center', width: 48, sortKey: null })
   cols.push(
     { key: 'sLoc',         label: 'SLoc',      align: 'center', width: 56 },
     { key: 'qtyYesterday', label: 'Yesterday', align: 'right',  width: 84 },

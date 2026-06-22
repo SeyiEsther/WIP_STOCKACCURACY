@@ -93,43 +93,34 @@ export default function FilterBar({
 
         {/* ABC class filter */}
         {hasAbc && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--tx-faint)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              ABC
-            </span>
-            {ABC_CHIPS.map(c => (
-              <Chip
-                key={c.key}
-                label={c.label}
-                active={abcFilter === c.key}
-                theme={c.key === 'ALL'
-                  ? { color: 'var(--tx-body)', bg: 'var(--bg-inset)', border: 'var(--border-sub)' }
-                  : { color: c.color, bg: c.bg, border: c.border }}
-                onClick={() => onAbcFilterChange(c.key)}
-              />
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {abcIsMock && (
-              <span
-                title="ABC classes are randomly assigned for demo purposes. Real SAP ABC Indicator data is pending import confirmation."
-                style={{
-                  marginLeft: 4,
-                  padding: '2px 7px',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 9,
-                  fontWeight: 600,
-                  letterSpacing: '0.04em',
-                  color: '#92400e',
-                  background: '#fef3c7',
-                  border: '1px solid #fcd34d',
-                  borderRadius: 20,
-                  cursor: 'help',
-                  whiteSpace: 'nowrap',
-                  userSelect: 'none',
-                }}
-              >
-                ⚠ Preview — pending SAP data confirmation
+              <span style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: 10,
+                fontStyle: 'italic',
+                color: 'var(--tx-faint)',
+                letterSpacing: '0.01em',
+              }}>
+                Preview — ABC classification pending confirmation in SAP
               </span>
             )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--tx-faint)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Class
+              </span>
+              {ABC_CHIPS.map(c => (
+                <Chip
+                  key={c.key}
+                  label={c.label}
+                  active={abcFilter === c.key}
+                  theme={c.key === 'ALL'
+                    ? { color: 'var(--tx-body)', bg: 'var(--bg-inset)', border: 'var(--border-sub)' }
+                    : { color: c.color, bg: c.bg, border: c.border }}
+                  onClick={() => onAbcFilterChange(c.key)}
+                />
+              ))}
+            </div>
           </div>
         )}
 

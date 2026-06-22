@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import {
-  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid,
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ReferenceLine, ResponsiveContainer,
 } from 'recharts'
 
@@ -47,6 +47,23 @@ function CustomTooltip({ active, payload }) {
   )
 }
 
+function ColoredDot(props) {
+  const { cx, cy, payload } = props
+  if (cx == null || cy == null) return null
+  const color = payload.pctChange >= 0 ? '#1a7f37' : '#cf222e'
+  return (
+    <circle
+      key={`dot-${payload.label}`}
+      cx={cx}
+      cy={cy}
+      r={5}
+      fill={color}
+      stroke="#fff"
+      strokeWidth={1.5}
+    />
+  )
+}
+
 export default function DailyComparisonChart({ data, threshold = 10 }) {
   const { chartData, outliers } = useMemo(() => {
     const all = [...(data || [])]
@@ -69,9 +86,6 @@ export default function DailyComparisonChart({ data, threshold = 10 }) {
     }
   }, [data, threshold])
 
-  // dynamic height: ~18px per bar, min 200
-  const chartHeight = Math.max(200, chartData.length * 18 + 40)
-
   return (
     <div style={{
       background: 'var(--bg-surface)',
@@ -84,48 +98,48 @@ export default function DailyComparisonChart({ data, threshold = 10 }) {
       {chartData.length === 0 ? (
         <Empty>No comparison data available</Empty>
       ) : (
-        <ResponsiveContainer width="100%" height={chartHeight}>
-          <BarChart
-            layout="vertical"
+        <ResponsiveContainer width="100%" height={260}>
+          <LineChart
             data={chartData}
-            margin={{ top: 4, right: 64, left: 8, bottom: 28 }}
+            margin={{ top: 10, right: 20, left: 10, bottom: 80 }}
           >
-            <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 3" />
+            <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
             <XAxis
-              type="number"
-              tick={{ fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 10 }}
-              tickFormatter={v => `${v}%`}
+              dataKey="label"
+              tick={{ fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 9, angle: -45, textAnchor: 'end', dy: 6 }}
               tickLine={false}
               axisLine={{ stroke: 'var(--border)' }}
-              label={{ value: '% Change', position: 'insideBottom', offset: -10, style: AXIS_LBL_STYLE }}
+              interval={0}
+              height={72}
+              label={{ value: 'Material No.', position: 'insideBottom', offset: -64, style: AXIS_LBL_STYLE }}
             />
             <YAxis
-              type="category"
-              dataKey="label"
-              width={80}
-              tick={{ fill: 'var(--tx-body)', fontFamily: 'IBM Plex Mono', fontSize: 10 }}
+              tick={{ fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 10 }}
               tickLine={false}
               axisLine={false}
-              label={{ value: 'Material No.', angle: -90, position: 'insideLeft', offset: 10, style: AXIS_LBL_STYLE }}
+              width={52}
+              tickFormatter={v => `${v}%`}
+              label={{ value: '% Change', angle: -90, position: 'insideLeft', offset: 8, style: AXIS_LBL_STYLE }}
             />
-            <ReferenceLine x={0} stroke="var(--border-sub)" strokeWidth={1.5} />
-            <ReferenceLine x={ threshold} stroke="var(--amber)" strokeDasharray="4 3" strokeOpacity={0.6} strokeWidth={1}
+            <ReferenceLine y={0} stroke="var(--border-sub)" strokeWidth={1.5} />
+            <ReferenceLine y={ threshold} stroke="var(--amber)" strokeDasharray="4 3" strokeOpacity={0.6} strokeWidth={1}
               label={{ value: `+${threshold}%`, position: 'right', style: { fill: 'var(--amber)', fontFamily: 'IBM Plex Mono', fontSize: 9 } }}
             />
-            <ReferenceLine x={-threshold} stroke="var(--amber)" strokeDasharray="4 3" strokeOpacity={0.6} strokeWidth={1}
+            <ReferenceLine y={-threshold} stroke="var(--amber)" strokeDasharray="4 3" strokeOpacity={0.6} strokeWidth={1}
               label={{ value: `-${threshold}%`, position: 'right', style: { fill: 'var(--amber)', fontFamily: 'IBM Plex Mono', fontSize: 9 } }}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--bg-inset)' }} />
-            <Bar dataKey="pctChange" name="% Change" radius={[0, 3, 3, 0]} maxBarSize={16}>
-              {chartData.map((entry, i) => (
-                <Cell
-                  key={i}
-                  fill={entry.pctChange >= 0 ? '#1a7f37' : '#cf222e'}
-                  fillOpacity={entry.flagged ? 0.85 : 0.35}
-                />
-              ))}
-            </Bar>
-          </BarChart>
+            <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'var(--border-sub)', strokeWidth: 1 }} />
+            <Line
+              type="linear"
+              dataKey="pctChange"
+              name="% Change"
+              stroke="rgba(150,150,150,0.25)"
+              strokeWidth={1}
+              dot={<ColoredDot />}
+              activeDot={{ r: 7, strokeWidth: 0 }}
+              isAnimationActive={false}
+            />
+          </LineChart>
         </ResponsiveContainer>
       )}
 
