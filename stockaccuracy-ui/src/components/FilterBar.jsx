@@ -94,17 +94,6 @@ export default function FilterBar({
         {/* ABC class filter */}
         {hasAbc && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {abcIsMock && (
-              <span style={{
-                fontFamily: 'var(--font-sans)',
-                fontSize: 10,
-                fontStyle: 'italic',
-                color: 'var(--tx-faint)',
-                letterSpacing: '0.01em',
-              }}>
-                Preview — ABC classification pending confirmation in SAP
-              </span>
-            )}
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--tx-faint)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                 Class
