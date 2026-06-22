@@ -31,7 +31,7 @@ export default function FilterBar({
   sloc, slocs, onSlocChange,
   threshold, onThresholdChange,
   // ABC
-  abcFilter, onAbcFilterChange, hasAbc,
+  abcFilter, onAbcFilterChange, hasAbc, abcIsMock,
   // trend
   trendOnly, onTrendOnlyChange, trendDays, onTrendDaysChange,
   // ack
@@ -108,6 +108,28 @@ export default function FilterBar({
                 onClick={() => onAbcFilterChange(c.key)}
               />
             ))}
+            {abcIsMock && (
+              <span
+                title="ABC classes are randomly assigned for demo purposes. Real SAP ABC Indicator data is pending import confirmation."
+                style={{
+                  marginLeft: 4,
+                  padding: '2px 7px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 9,
+                  fontWeight: 600,
+                  letterSpacing: '0.04em',
+                  color: '#92400e',
+                  background: '#fef3c7',
+                  border: '1px solid #fcd34d',
+                  borderRadius: 20,
+                  cursor: 'help',
+                  whiteSpace: 'nowrap',
+                  userSelect: 'none',
+                }}
+              >
+                ⚠ Preview — pending SAP data confirmation
+              </span>
+            )}
           </div>
         )}
 

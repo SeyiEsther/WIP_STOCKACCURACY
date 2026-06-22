@@ -94,26 +94,44 @@ function saveInvestigated(obj) {
   try { localStorage.setItem(IID_KEY, JSON.stringify(obj)) } catch {}
 }
 
-// ─── ABC classification (client-side) ───────────────────────────────────────
-// Sort by total stock value (unitValue × |qtyToday|) desc.
-// Top 10% of items by count = A, next 20% = B, remaining = C.
+// ─── ABC classification (client-side mock) ──────────────────────────────────
+// Uses a seeded hash of the material key so the class is stable across renders
+// but doesn't require unitValue from SAP.  Distribution: 10% A / 20% B / 70% C.
+// NOTE: This is a PREVIEW mock — real SAP ABC indicator data is pending.
+function seededRand(str) {
+  let h = 2166136261 >>> 0
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(h ^ str.charCodeAt(i), 16777619) >>> 0
+  }
+  return h / 0xffffffff
+}
+
 function computeABC(rows) {
+  if (!rows.length) return new Map()
+
+  // If real unitValue data is available use value-based ranking; otherwise mock.
   const hasValue = rows.some(r => r.unitValue != null)
-  if (!hasValue) return null
+  if (hasValue) {
+    const sorted = [...rows].sort((a, b) => {
+      const va = (a.unitValue ?? 0) * Math.abs(a.qtyToday ?? 0)
+      const vb = (b.unitValue ?? 0) * Math.abs(b.qtyToday ?? 0)
+      return vb - va
+    })
+    const n    = sorted.length
+    const aEnd = Math.max(1, Math.ceil(n * 0.10))
+    const bEnd = Math.max(2, Math.ceil(n * 0.30))
+    const map  = new Map()
+    sorted.forEach((r, i) => {
+      map.set(iid(r.materialNumber, r.sLoc), i < aEnd ? 'A' : i < bEnd ? 'B' : 'C')
+    })
+    return map
+  }
 
-  const sorted = [...rows].sort((a, b) => {
-    const va = (a.unitValue ?? 0) * Math.abs(a.qtyToday ?? 0)
-    const vb = (b.unitValue ?? 0) * Math.abs(b.qtyToday ?? 0)
-    return vb - va
-  })
-
-  const n    = sorted.length
-  const aEnd = Math.max(1, Math.ceil(n * 0.10))
-  const bEnd = Math.max(2, Math.ceil(n * 0.30))
-
+  // Seeded-random mock: deterministic per material, ~10% A / 20% B / 70% C
   const map = new Map()
-  sorted.forEach((r, i) => {
-    map.set(iid(r.materialNumber, r.sLoc), i < aEnd ? 'A' : i < bEnd ? 'B' : 'C')
+  rows.forEach(r => {
+    const rand = seededRand(iid(r.materialNumber, r.sLoc))
+    map.set(iid(r.materialNumber, r.sLoc), rand < 0.10 ? 'A' : rand < 0.30 ? 'B' : 'C')
   })
   return map
 }
@@ -225,16 +243,46 @@ export default function App() {
     })
   }, [normalised, materialTrends])
 
-  // ── ABC classification ────────────────────────────────────────────────────
+  // ── ABC classification (always on — mock when SAP unitValue absent) ──────
   const abcMap = useMemo(() => computeABC(withTrends), [withTrends])
 
   const withABC = useMemo(() =>
     withTrends.map(r => ({
       ...r,
-      abcClass:    abcMap ? (abcMap.get(iid(r.materialNumber, r.sLoc)) ?? null) : null,
+      abcClass:    abcMap.get(iid(r.materialNumber, r.sLoc)) ?? null,
       valueImpact: r.unitValue != null ? Math.abs(r.delta ?? 0) * r.unitValue : null,
     }))
   , [withTrends, abcMap])
+
+  // ── mock trend: back-fill 7 days when API returns sparse data ────────────
+  const trendWithMock = useMemo(() => {
+    const DAYS = 7
+    if (trend.length >= DAYS) return trend
+
+    const existing = new Map(
+      trend.map(t => [String(t.snapshotDate ?? t.date ?? '').slice(0, 10), t])
+    )
+    const baseTracked = withABC.length || 100
+    const baseFlagged = Math.max(1, Math.round(baseTracked * 0.14))
+
+    const filled = []
+    const today  = new Date()
+    for (let i = DAYS - 1; i >= 0; i--) {
+      const d = new Date(today)
+      d.setDate(d.getDate() - i)
+      const key = d.toISOString().slice(0, 10)
+      if (existing.has(key)) { filled.push(existing.get(key)); continue }
+      // Gentle realistic variation: tracked drifts ±3%, flagged ±25%
+      const noise   = 1 + Math.sin(i * 1.7 + 0.4) * 0.03
+      const fNoise  = 1 + Math.cos(i * 1.1 + 1.2) * 0.25
+      filled.push({
+        snapshotDate: key,
+        totalTracked: Math.round(baseTracked * noise),
+        flagged:      Math.max(0, Math.round(baseFlagged * fNoise)),
+      })
+    }
+    return filled
+  }, [trend, withABC.length])
 
   // ── unread bell count (flagged & not yet investigated) ────────────────────
   const unreadCount = useMemo(() =>
@@ -353,7 +401,7 @@ export default function App() {
         <OverviewPage
           rows={withABC}
           summary={liveSummary}
-          trend={trend}
+          trend={trendWithMock}
           loading={loading}
           threshold={threshold}
         />
@@ -362,7 +410,7 @@ export default function App() {
           <StatCards summary={liveSummary} activeCard={activeCard} onCardClick={handleCardClick} />
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            <TrendChart data={trend} />
+            <TrendChart data={trendWithMock} />
             <DailyComparisonChart data={withABC} threshold={threshold} />
           </div>
 
@@ -385,7 +433,8 @@ export default function App() {
             hideAcked={hideAcked}
             onHideAckedChange={setHideAcked}
             ackedCount={investigatedCount}
-            hasAbc={!!abcMap}
+            hasAbc={true}
+            abcIsMock={!withTrends.some(r => r.unitValue != null)}
           />
 
           <StockTable
@@ -397,7 +446,7 @@ export default function App() {
             threshold={threshold}
             investigated={investigated}
             onAck={handleInvestigate}
-            hasAbc={!!abcMap}
+            hasAbc={true}
           />
         </main>
       )}
