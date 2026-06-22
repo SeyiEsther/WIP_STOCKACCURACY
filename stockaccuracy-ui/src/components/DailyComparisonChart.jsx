@@ -94,7 +94,7 @@ export default function DailyComparisonChart({ data, threshold = 10 }) {
       chartData: all.filter(r => Math.abs(r.pctChange) <= OUTLIER_THRESHOLD),
       outliers:  all.filter(r => Math.abs(r.pctChange)  > OUTLIER_THRESHOLD),
     }
-  }, [data, threshold])
+  }, [data, threshold, abcFilter])
 
   return (
     <div style={{
