@@ -37,7 +37,7 @@ public class StockController : ControllerBase
             await conn.OpenAsync();
 
             var views = (await conn.QueryAsync<string>(
-                "SELECT name FROM sys.views WHERE name IN ('vw_StockComparison','vw_StockSummary') ORDER BY name"
+                "SELECT name FROM sys.views WHERE name IN ('vw_StockComparison','vw_StockSummary','vw_WatchlistComparison') ORDER BY name"
             )).ToList();
 
             return Ok(new
@@ -46,7 +46,7 @@ public class StockController : ControllerBase
                 server   = conn.DataSource,
                 database = conn.Database,
                 views,
-                viewsOk  = views.Count == 2,
+                viewsOk  = views.Count == 3,
             });
         }
         catch (Exception ex)
@@ -112,6 +112,21 @@ public class StockController : ControllerBase
         catch (Exception ex)
         {
             _log.LogError(ex, "GET material-trends failed");
+            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
+        }
+    }
+
+    [HttpGet("watchlist")]
+    public async Task<IActionResult> GetWatchlist()
+    {
+        try
+        {
+            var data = await _repo.GetWatchlistComparisonAsync();
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "GET watchlist failed");
             return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
         }
     }

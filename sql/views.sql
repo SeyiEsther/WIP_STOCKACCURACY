@@ -93,3 +93,25 @@ SELECT
     SUM(CASE WHEN Status = 'MISSING' THEN 1 ELSE 0 END)  AS TotalMissing,
     MAX(TodayDate)                                        AS LastSnapshotDate
 FROM dbo.vw_StockComparison;
+
+-- ------------------------------------
+-- Watchlist
+-- Materials/SLocs flagged for closer monitoring
+-- ------------------------------------
+IF OBJECT_ID('dbo.Watchlist', 'U') IS NULL
+CREATE TABLE dbo.Watchlist (
+    MaterialNumber NVARCHAR(18) NOT NULL,
+    SLoc           NVARCHAR(4)  NOT NULL,
+    CONSTRAINT PK_Watchlist PRIMARY KEY (MaterialNumber, SLoc)
+);
+
+-- ------------------------------------
+-- vw_WatchlistComparison
+-- Same shape as vw_StockComparison, scoped to watchlisted material/SLoc pairs
+-- ------------------------------------
+CREATE OR ALTER VIEW dbo.vw_WatchlistComparison AS
+SELECT c.*
+FROM dbo.vw_StockComparison c
+INNER JOIN dbo.Watchlist w
+    ON  w.MaterialNumber = c.MaterialNumber
+    AND w.SLoc           = c.SLoc;

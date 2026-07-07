@@ -10,6 +10,7 @@ public interface IStockRepository
     Task<StockSummary>                 GetStockSummaryAsync();
     Task<IEnumerable<StockTrend>>      GetStockTrendAsync();
     Task<IEnumerable<MaterialTrend>>   GetMaterialTrendsAsync(int days = 5);
+    Task<IEnumerable<StockComparison>> GetWatchlistComparisonAsync();
 }
 
 public class StockRepository : IStockRepository
@@ -86,6 +87,20 @@ public class StockRepository : IStockRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to query stock trend");
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<StockComparison>> GetWatchlistComparisonAsync()
+    {
+        try
+        {
+            using var conn = new SqlConnection(_connectionString);
+            return await conn.QueryAsync<StockComparison>("SELECT * FROM dbo.vw_WatchlistComparison");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to query vw_WatchlistComparison");
             throw;
         }
     }

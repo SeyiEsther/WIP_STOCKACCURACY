@@ -46,7 +46,7 @@ const ABC_DEF = {
 }
 
 // ─── column definitions ───────────────────────────────────────────────────────
-function buildCols(hasAbc) {
+function buildCols(hasAbc, { showImpact = true, showTrend = true, showAck = true } = {}) {
   const cols = [
     { key: 'materialNumber', label: 'Material',    align: 'left',   width: 108      },
     { key: 'materialDesc',   label: 'Description', align: 'left',   width: 'auto'   },
@@ -59,11 +59,14 @@ function buildCols(hasAbc) {
     { key: 'qtyToday',     label: 'Today',     align: 'right',  width: 84 },
     { key: 'delta',        label: 'Delta',     align: 'right',  width: 84 },
     { key: 'pctChange',    label: '% Chg',     align: 'right',  width: 82 },
-    { key: 'valueImpact',  label: '£ Impact',  align: 'right',  width: 90 },
-    { key: 'trend',        label: 'Trend',     align: 'center', width: 72, sortKey: null },
-    { key: 'status',       label: 'Status',    align: 'center', width: 84, sortKey: 'absPct' },
-    { key: 'ack',          label: '✓',         align: 'center', width: 38, sortKey: null },
   )
+  if (showImpact)
+    cols.push({ key: 'valueImpact', label: '£ Impact', align: 'right', width: 90 })
+  if (showTrend)
+    cols.push({ key: 'trend', label: 'Trend', align: 'center', width: 72, sortKey: null })
+  cols.push({ key: 'status', label: 'Status', align: 'center', width: 84, sortKey: 'absPct' })
+  if (showAck)
+    cols.push({ key: 'ack', label: '✓', align: 'center', width: 38, sortKey: null })
   return cols
 }
 
@@ -177,8 +180,9 @@ function InvestigateBtn({ isInvestigated, onClick }) {
 export default function StockTable({
   rows, loading, sortKey, sortDir, onSort, threshold,
   investigated, onAck, hasAbc,
+  showImpact = true, showTrend = true, showAck = true,
 }) {
-  const cols = buildCols(hasAbc)
+  const cols = buildCols(hasAbc, { showImpact, showTrend, showAck })
 
   if (loading) {
     return (
@@ -286,25 +290,31 @@ export default function StockTable({
                 <td style={{ padding: '6px 8px', textAlign: 'right' }}>
                   <PctBadge pct={r.pctChange} statusKey={st} />
                 </td>
-                <td style={{
-                  padding: '6px 8px', fontFamily: 'var(--font-mono)', fontSize: 11, textAlign: 'right',
-                  color: r.valueImpact && r.valueImpact > 50 ? 'var(--amber)' : 'var(--tx-lo)',
-                  fontWeight: r.valueImpact && r.valueImpact > 50 ? 600 : 400,
-                }}>
-                  {fmtValue(r.valueImpact)}
-                </td>
-                <td style={{ padding: '6px 8px', textAlign: 'center' }}>
-                  <TrendCell direction={r.trendDirection} days={r.trendDays} />
-                </td>
+                {showImpact && (
+                  <td style={{
+                    padding: '6px 8px', fontFamily: 'var(--font-mono)', fontSize: 11, textAlign: 'right',
+                    color: r.valueImpact && r.valueImpact > 50 ? 'var(--amber)' : 'var(--tx-lo)',
+                    fontWeight: r.valueImpact && r.valueImpact > 50 ? 600 : 400,
+                  }}>
+                    {fmtValue(r.valueImpact)}
+                  </td>
+                )}
+                {showTrend && (
+                  <td style={{ padding: '6px 8px', textAlign: 'center' }}>
+                    <TrendCell direction={r.trendDirection} days={r.trendDays} />
+                  </td>
+                )}
                 <td style={{ padding: '6px 8px', textAlign: 'center' }}>
                   <StatusBadge statusKey={st} />
                 </td>
-                <td style={{ padding: '6px 8px', textAlign: 'center' }}>
-                  <InvestigateBtn
-                    isInvestigated={isInvestigated}
-                    onClick={() => onAck(r.materialNumber, r.sLoc)}
-                  />
-                </td>
+                {showAck && (
+                  <td style={{ padding: '6px 8px', textAlign: 'center' }}>
+                    <InvestigateBtn
+                      isInvestigated={isInvestigated}
+                      onClick={() => onAck(r.materialNumber, r.sLoc)}
+                    />
+                  </td>
+                )}
               </tr>
             )
           })}
@@ -318,7 +328,7 @@ export default function StockTable({
         display: 'flex', gap: 12,
       }}>
         <span>{rows.length} row{rows.length !== 1 ? 's' : ''}</span>
-        {rows.some(r => r.valueImpact != null) && (
+        {showImpact && rows.some(r => r.valueImpact != null) && (
           <span>
             Total £ impact:{' '}
             <strong>{fmtValue(rows.reduce((s, r) => s + (r.valueImpact ?? 0), 0))}</strong>

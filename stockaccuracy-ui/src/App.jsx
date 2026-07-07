@@ -7,27 +7,10 @@ import FilterBar            from './components/FilterBar.jsx'
 import StockTable           from './components/StockTable.jsx'
 import NotificationPanel    from './components/NotificationPanel.jsx'
 import OverviewPage         from './components/OverviewPage.jsx'
+import WatchlistPage        from './components/WatchlistPage.jsx'
+import { norm, iid }        from './lib/normalize.js'
 
 const API_BASE = '/api/stock'
-
-// ─── normalise API field names (PascalCase or camelCase) ────────────────────
-function norm(r) {
-  return {
-    materialNumber: r.materialNumber ?? r.MaterialNumber,
-    materialDesc:   r.materialDesc   ?? r.MaterialDesc,
-    sLoc:           r.sLoc           ?? r.SLoc,
-    qtyYesterday:   r.qtyYesterday   ?? r.QtyYesterday,
-    qtyToday:       r.qtyToday       ?? r.QtyToday,
-    delta:          r.delta          ?? r.Delta,
-    pctChange:      r.pctChange      ?? r.PctChange,
-    status:         r.status         ?? r.Status,
-    baseUnit:       r.baseUnit       ?? r.BaseUnit,
-    mrpController:  r.mrpController  ?? r.MRPController,
-    todayDate:      r.todayDate      ?? r.TodayDate,
-    yesterdayDate:  r.yesterdayDate  ?? r.YesterdayDate,
-    unitValue:      r.unitValue      ?? r.UnitValue ?? null,
-  }
-}
 
 function normTrend(t) {
   return {
@@ -85,7 +68,6 @@ function useStockData(trendDays) {
 
 // ─── investigation store (localStorage) ─────────────────────────────────────
 const IID_KEY = 'sa_investigated'
-const iid     = (mat, sloc) => `${mat}__${sloc}`
 
 function loadInvestigated() {
   try { return JSON.parse(localStorage.getItem(IID_KEY) || '{}') } catch { return {} }
@@ -98,8 +80,9 @@ function saveInvestigated(obj) {
 // ─── Nav bar ─────────────────────────────────────────────────────────────────
 function NavBar({ page, onPageChange }) {
   const tabs = [
-    { key: 'overview', label: 'Overview' },
-    { key: 'monitor',  label: 'Stock Monitor' },
+    { key: 'overview',  label: 'Overview' },
+    { key: 'monitor',   label: 'Stock Monitor' },
+    { key: 'watchlist', label: 'Watchlist' },
   ]
   return (
     <div style={{
@@ -381,6 +364,8 @@ export default function App() {
           loading={loading}
           threshold={threshold}
         />
+      ) : page === 'watchlist' ? (
+        <WatchlistPage />
       ) : (
         <main style={{ flex: 1, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <StatCards summary={liveSummary} activeCard={activeCard} onCardClick={handleCardClick} />
