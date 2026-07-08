@@ -17,5 +17,6 @@ Thumbs.db
 logs/
 *.log
 
-# secrets
+# secrets — set ConnectionStrings__StockDb via environment variable
 appsettings.Production.json
+appsettings.Local.json

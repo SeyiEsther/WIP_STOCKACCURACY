@@ -9,7 +9,20 @@ builder.Services.AddScoped<IStockRepository, StockRepository>();
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+    {
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+            return;
+        }
+
+        var origins = builder.Configuration
+            .GetSection("Cors:AllowedOrigins")
+            .Get<string[]>() ?? Array.Empty<string>();
+
+        if (origins.Length > 0)
+            policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod();
+    });
 });
 
 var app = builder.Build();
@@ -21,6 +34,8 @@ app.UseExceptionHandler(errApp => errApp.Run(async ctx =>
     ctx.Response.ContentType = "application/json";
     var feature = ctx.Features.Get<IExceptionHandlerFeature>();
     var message = feature?.Error?.Message ?? "Internal server error";
+    if (!app.Environment.IsDevelopment())
+        message = "An internal server error occurred.";
     await ctx.Response.WriteAsJsonAsync(new { error = message });
 }));
 

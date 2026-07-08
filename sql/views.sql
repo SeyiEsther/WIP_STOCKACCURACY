@@ -20,18 +20,43 @@ CREATE TABLE dbo.StockSnapshot (
 );
 
 -- ------------------------------------
+-- Material usage (populated from SAP goods
+-- movements — counts uses in last 60 days)
+-- Dan's ABC rule: A >750, B 100–750, C <100
+-- ------------------------------------
+IF OBJECT_ID('dbo.MaterialUsage', 'U') IS NULL
+CREATE TABLE dbo.MaterialUsage (
+    MaterialNumber NVARCHAR(18) NOT NULL,
+    UsageCount     INT          NOT NULL DEFAULT 0,
+    PeriodEnd      DATE         NULL,
+    CONSTRAINT PK_MaterialUsage PRIMARY KEY (MaterialNumber)
+);
+
+-- ------------------------------------
 -- vw_StockComparison
--- One row per material/SLoc comparing
--- today's snapshot against yesterday's
+-- Compares the two most recent snapshot dates
+-- (not calendar today/yesterday)
 -- ------------------------------------
 CREATE OR ALTER VIEW dbo.vw_StockComparison AS
-WITH Today AS (
-    SELECT * FROM dbo.StockSnapshot
-    WHERE SnapshotDate = CAST(GETDATE() AS DATE)
+WITH Dates AS (
+    SELECT
+        (SELECT MAX(SnapshotDate) FROM dbo.StockSnapshot) AS TodayDate,
+        (SELECT MAX(SnapshotDate)
+         FROM dbo.StockSnapshot
+         WHERE SnapshotDate < (SELECT MAX(SnapshotDate) FROM dbo.StockSnapshot)
+        ) AS YesterdayDate
+),
+Today AS (
+    SELECT s.*
+    FROM dbo.StockSnapshot s
+    CROSS JOIN Dates d
+    WHERE s.SnapshotDate = d.TodayDate
 ),
 Yesterday AS (
-    SELECT * FROM dbo.StockSnapshot
-    WHERE SnapshotDate = CAST(DATEADD(DAY, -1, GETDATE()) AS DATE)
+    SELECT s.*
+    FROM dbo.StockSnapshot s
+    CROSS JOIN Dates d
+    WHERE s.SnapshotDate = d.YesterdayDate
 ),
 Combined AS (
     SELECT
@@ -42,44 +67,46 @@ Combined AS (
         COALESCE(t.MRPController,  y.MRPController)  AS MRPController,
         ISNULL(y.Qty, 0)  AS QtyYesterday,
         ISNULL(t.Qty, 0)  AS QtyToday,
-        CAST(GETDATE() AS DATE)                         AS TodayDate,
-        CAST(DATEADD(DAY,-1,GETDATE()) AS DATE)        AS YesterdayDate,
+        d.TodayDate,
+        d.YesterdayDate,
         CASE
             WHEN y.MaterialNumber IS NULL THEN 'NEW'
             WHEN t.MaterialNumber IS NULL THEN 'MISSING'
             ELSE 'OK'
         END AS RawStatus
-    FROM Today      t
+    FROM Today t
     FULL OUTER JOIN Yesterday y
         ON  t.MaterialNumber = y.MaterialNumber
         AND t.SLoc           = y.SLoc
+    CROSS JOIN Dates d
 )
 SELECT
-    MaterialNumber,
-    MaterialDesc,
-    SLoc,
-    QtyYesterday,
-    QtyToday,
-    QtyToday - QtyYesterday                              AS Delta,
+    c.MaterialNumber,
+    c.MaterialDesc,
+    c.SLoc,
+    c.QtyYesterday,
+    c.QtyToday,
+    c.QtyToday - c.QtyYesterday                              AS Delta,
     CASE
-        WHEN QtyYesterday = 0 AND QtyToday = 0 THEN 0
-        WHEN QtyYesterday = 0                  THEN 100
-        ELSE ROUND((QtyToday - QtyYesterday) / QtyYesterday * 100, 2)
-    END                                                  AS PctChange,
+        WHEN c.QtyYesterday = 0 AND c.QtyToday = 0 THEN 0
+        WHEN c.QtyYesterday = 0                  THEN 100
+        ELSE ROUND((c.QtyToday - c.QtyYesterday) / c.QtyYesterday * 100, 2)
+    END                                                      AS PctChange,
+    c.RawStatus                                              AS Status,
+    c.BaseUnit,
+    c.MRPController,
+    c.TodayDate,
+    c.YesterdayDate,
+    mu.UsageCount,
     CASE
-        WHEN RawStatus IN ('NEW','MISSING') THEN RawStatus
-        WHEN ABS(CASE
-                    WHEN QtyYesterday = 0 AND QtyToday = 0 THEN 0
-                    WHEN QtyYesterday = 0                  THEN 100
-                    ELSE ROUND((QtyToday - QtyYesterday) / QtyYesterday * 100, 2)
-                 END) > 10 THEN 'FLAGGED'
-        ELSE 'OK'
-    END                                                  AS Status,
-    BaseUnit,
-    MRPController,
-    TodayDate,
-    YesterdayDate
-FROM Combined;
+        WHEN mu.UsageCount > 750  THEN 'A'
+        WHEN mu.UsageCount >= 100 THEN 'B'
+        WHEN mu.UsageCount IS NOT NULL THEN 'C'
+        ELSE NULL
+    END                                                      AS AbcClass,
+    NULL                                                     AS UnitValue
+FROM Combined c
+LEFT JOIN dbo.MaterialUsage mu ON mu.MaterialNumber = c.MaterialNumber;
 
 -- ------------------------------------
 -- vw_StockSummary
@@ -88,7 +115,7 @@ FROM Combined;
 CREATE OR ALTER VIEW dbo.vw_StockSummary AS
 SELECT
     COUNT(*)                                              AS TotalTracked,
-    SUM(CASE WHEN Status = 'FLAGGED' THEN 1 ELSE 0 END)  AS TotalFlagged,
+    SUM(CASE WHEN Status = 'OK' AND ABS(PctChange) > 10 THEN 1 ELSE 0 END) AS TotalFlagged,
     SUM(CASE WHEN Status = 'NEW'     THEN 1 ELSE 0 END)  AS TotalNew,
     SUM(CASE WHEN Status = 'MISSING' THEN 1 ELSE 0 END)  AS TotalMissing,
     MAX(TodayDate)                                        AS LastSnapshotDate

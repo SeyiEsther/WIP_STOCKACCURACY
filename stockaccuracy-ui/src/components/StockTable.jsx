@@ -1,3 +1,5 @@
+import { iid } from '../lib/normalize.js'
+
 // ─── formatters ─────────────────────────────────────────────────────────────
 const fmtQty = (n) => {
   if (n == null) return '—'
@@ -17,15 +19,14 @@ const fmtValue = (n) => {
   }).format(n)
 }
 
-// ─── status derivation ───────────────────────────────────────────────────────
-function iid(mat, sloc) { return `${mat}__${sloc}` }
-
 function deriveStatus(row, threshold, investigated) {
   if (row.status === 'NEW')     return 'NEW'
   if (row.status === 'MISSING') return 'MISSING'
   if (Math.abs(row.pctChange) > threshold) {
     if (investigated?.[iid(row.materialNumber, row.sLoc)]) return 'INVESTIGATED'
-    return row.delta >= 0 ? 'UP' : 'DOWN'
+    if (row.delta > 0) return 'UP'
+    if (row.delta < 0) return 'DOWN'
+    return 'OK'
   }
   return 'OK'
 }

@@ -8,7 +8,7 @@ import StockTable           from './components/StockTable.jsx'
 import NotificationPanel    from './components/NotificationPanel.jsx'
 import OverviewPage         from './components/OverviewPage.jsx'
 import WatchlistPage        from './components/WatchlistPage.jsx'
-import { norm, iid }        from './lib/normalize.js'
+import { norm, iid, exportRowsCsv } from './lib/normalize.js'
 
 const API_BASE = '/api/stock'
 
@@ -21,8 +21,14 @@ function normTrend(t) {
   }
 }
 
+function isFlagged(r, threshold) {
+  return r.status !== 'NEW' &&
+    r.status !== 'MISSING' &&
+    Math.abs(r.pctChange) > threshold
+}
+
 // ─── data hook ──────────────────────────────────────────────────────────────
-function useStockData(trendDays) {
+function useStockData(trendDays, threshold) {
   const [rows,           setRows]           = useState([])
   const [summary,        setSummary]        = useState(null)
   const [loading,        setLoading]        = useState(true)
@@ -38,7 +44,7 @@ function useStockData(trendDays) {
       const [compRes, sumRes, trendRes, mtRes] = await Promise.all([
         fetch(`${API_BASE}/comparison`),
         fetch(`${API_BASE}/summary`),
-        fetch(`${API_BASE}/trend`),
+        fetch(`${API_BASE}/trend?threshold=${threshold}`),
         fetch(`${API_BASE}/material-trends?days=${trendDays}`),
       ])
       if (!compRes.ok || !sumRes.ok) {
@@ -59,7 +65,7 @@ function useStockData(trendDays) {
     } finally {
       setLoading(false)
     }
-  }, [trendDays])
+  }, [trendDays, threshold])
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
@@ -128,12 +134,6 @@ export default function App() {
   const [trendDays, setTrendDays] = useState(5)
   const [page, setPage] = useState('overview')
 
-  const {
-    rows, summary, trend, materialTrends,
-    loading, error, lastUpdated, refresh,
-  } = useStockData(trendDays)
-
-  // ── filter / sort state ──────────────────────────────────────────────────
   const [activeCard,  setActiveCard]  = useState('ALL')
   const [filterChip,  setFilterChip]  = useState('ALL')
   const [search,      setSearch]      = useState('')
@@ -145,12 +145,17 @@ export default function App() {
   const [trendOnly,   setTrendOnly]   = useState(false)
   const [hideAcked,   setHideAcked]   = useState(false)
 
-  // ── investigation state ───────────────────────────────────────────────────
-  const [investigated, setInvestigated] = useState(loadInvestigated)
+  const {
+    rows, summary, trend, materialTrends,
+    loading, error, lastUpdated, refresh,
+  } = useStockData(trendDays, threshold)
 
-  const handleInvestigate = useCallback((mat, sloc) => {
+  const [investigated, setInvestigated] = useState(loadInvestigated)
+  const [notifOpen, setNotifOpen] = useState(false)
+
+  const handleInvestigate = useCallback((mat, slocKey) => {
     setInvestigated(prev => {
-      const k    = iid(mat, sloc)
+      const k    = iid(mat, slocKey)
       const next = { ...prev }
       if (next[k]) { delete next[k] } else { next[k] = { ts: new Date().toISOString() } }
       saveInvestigated(next)
@@ -158,25 +163,20 @@ export default function App() {
     })
   }, [])
 
-  // ── notification panel ────────────────────────────────────────────────────
-  const [notifOpen, setNotifOpen] = useState(false)
-
-  // ── sync card → chip ──────────────────────────────────────────────────────
   const handleCardClick = (cat) => {
     setActiveCard(cat)
     setFilterChip(cat)
   }
 
-  // ── derived sloc list ─────────────────────────────────────────────────────
   const slocs = useMemo(() => {
-    const s = new Set(rows.map(r => r.sLoc ?? r.SLoc ?? r.sloc))
+    const s = new Set(
+      rows.map(r => r.sLoc ?? r.SLoc).filter(Boolean)
+    )
     return ['ALL', ...Array.from(s).sort()]
   }, [rows])
 
-  // ── normalise rows ────────────────────────────────────────────────────────
   const normalised = useMemo(() => rows.map(norm), [rows])
 
-  // ── merge material trends ─────────────────────────────────────────────────
   const withTrends = useMemo(() => {
     const tmap = new Map(materialTrends.map(t => [iid(t.materialNumber, t.sLoc), t]))
     return normalised.map(r => {
@@ -185,75 +185,22 @@ export default function App() {
     })
   }, [normalised, materialTrends])
 
-  // ── ABC classification — assigned once when data loads, stored in state ──
-  // Random distribution: ~10% A / 20% B / 70% C. Stable across re-renders.
-  const [abcMap, setAbcMap] = useState(() => new Map())
-
-  useEffect(() => {
-    if (!normalised.length) return
-    setAbcMap(prev => {
-      const firstKey = iid(normalised[0].materialNumber, normalised[0].sLoc)
-      if (prev.has(firstKey) && prev.size === normalised.length) return prev
-      const map = new Map()
-      normalised.forEach(r => {
-        const rand = Math.random()
-        map.set(iid(r.materialNumber, r.sLoc), rand < 0.10 ? 'A' : rand < 0.30 ? 'B' : 'C')
-      })
-      return map
-    })
-  }, [normalised])
-
-  const abcIsMock = !normalised.some(r => r.unitValue != null)
+  const hasAbc = useMemo(
+    () => normalised.some(r => r.abcClass != null),
+    [normalised]
+  )
 
   const withABC = useMemo(() =>
     withTrends.map(r => ({
       ...r,
-      abcClass:    abcMap.get(iid(r.materialNumber, r.sLoc)) ?? null,
       valueImpact: r.unitValue != null ? Math.abs(r.delta ?? 0) * r.unitValue : null,
     }))
-  , [withTrends, abcMap])
+  , [withTrends])
 
-  // ── mock trend: back-fill 7 days when API returns sparse data ────────────
-  const trendWithMock = useMemo(() => {
-    const DAYS = 7
-    if (trend.length >= DAYS) return trend
-
-    const existing = new Map(
-      trend.map(t => [String(t.snapshotDate ?? t.date ?? '').slice(0, 10), t])
-    )
-    const baseTracked = withABC.length || 100
-    const baseFlagged = Math.max(1, Math.round(baseTracked * 0.14))
-
-    const filled = []
-    const today  = new Date()
-    for (let i = DAYS - 1; i >= 0; i--) {
-      const d = new Date(today)
-      d.setDate(d.getDate() - i)
-      const key = d.toISOString().slice(0, 10)
-      if (existing.has(key)) { filled.push(existing.get(key)); continue }
-      // Gentle realistic variation: tracked drifts ±3%, flagged ±25%
-      const noise   = 1 + Math.sin(i * 1.7 + 0.4) * 0.03
-      const fNoise  = 1 + Math.cos(i * 1.1 + 1.2) * 0.25
-      filled.push({
-        snapshotDate: key,
-        totalTracked: Math.round(baseTracked * noise),
-        flagged:      Math.max(0, Math.round(baseFlagged * fNoise)),
-      })
-    }
-    return filled
-  }, [trend, withABC.length])
-
-  // ── unread bell count (flagged & not yet investigated) ────────────────────
   const unreadCount = useMemo(() =>
-    withABC.filter(r =>
-      Math.abs(r.pctChange) > threshold &&
-      r.status !== 'MISSING' &&
-      r.status !== 'NEW' &&
-      !investigated[iid(r.materialNumber, r.sLoc)]
-    ).length
+    withABC.filter(r => isFlagged(r, threshold) && !investigated[iid(r.materialNumber, r.sLoc)]).length
   , [withABC, threshold, investigated])
 
-  // ── filtered rows ─────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let d = withABC
 
@@ -268,11 +215,11 @@ export default function App() {
 
     const cat = activeCard !== 'ALL' ? activeCard : filterChip
     switch (cat) {
-      case 'FLAGGED':  d = d.filter(r => Math.abs(r.pctChange) > threshold); break
-      case 'UP':       d = d.filter(r => r.delta > 0);                        break
-      case 'DOWN':     d = d.filter(r => r.delta < 0);                        break
-      case 'NEW':      d = d.filter(r => r.status === 'NEW');                 break
-      case 'MISSING':  d = d.filter(r => r.status === 'MISSING');             break
+      case 'FLAGGED':  d = d.filter(r => isFlagged(r, threshold)); break
+      case 'UP':       d = d.filter(r => r.delta > 0);              break
+      case 'DOWN':     d = d.filter(r => r.delta < 0);              break
+      case 'NEW':      d = d.filter(r => r.status === 'NEW');       break
+      case 'MISSING':  d = d.filter(r => r.status === 'MISSING');  break
       default: break
     }
 
@@ -283,7 +230,6 @@ export default function App() {
     return d
   }, [withABC, sloc, search, activeCard, filterChip, threshold, abcFilter, trendOnly, hideAcked, investigated])
 
-  // ── sorted rows ───────────────────────────────────────────────────────────
   const sorted = useMemo(() => {
     const dir = sortDir === 'asc' ? 1 : -1
     return [...filtered].sort((a, b) => {
@@ -308,20 +254,14 @@ export default function App() {
   }
 
   const handleExport = () => {
-    const params = new URLSearchParams()
-    if (filterChip !== 'ALL') params.set('status', filterChip)
-    if (sloc !== 'ALL')       params.set('sloc', sloc)
-    if (search.trim())        params.set('search', search.trim())
-    params.set('threshold', threshold)
-    window.location.href = `${API_BASE}/export?${params}`
+    exportRowsCsv(sorted, `stock-accuracy-${new Date().toISOString().slice(0, 10)}.csv`)
   }
 
-  // ── live summary (threshold-adjusted flagged count) ───────────────────────
   const liveSummary = useMemo(() => {
     if (!summary) return null
     return {
       ...summary,
-      totalFlagged: withABC.filter(r => Math.abs(r.pctChange) > threshold).length,
+      totalFlagged: withABC.filter(r => isFlagged(r, threshold)).length,
     }
   }, [summary, withABC, threshold])
 
@@ -360,19 +300,23 @@ export default function App() {
         <OverviewPage
           rows={withABC}
           summary={liveSummary}
-          trend={trendWithMock}
+          trend={trend}
           loading={loading}
           threshold={threshold}
         />
       ) : page === 'watchlist' ? (
-        <WatchlistPage />
+        <WatchlistPage
+          threshold={threshold}
+          investigated={investigated}
+          onInvestigate={handleInvestigate}
+        />
       ) : (
         <main style={{ flex: 1, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <StatCards summary={liveSummary} activeCard={activeCard} onCardClick={handleCardClick} />
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            <TrendChart data={trendWithMock} />
-            <DailyComparisonChart data={withABC} threshold={threshold} />
+            <TrendChart data={trend} />
+            <DailyComparisonChart data={withABC} threshold={threshold} hasAbc={hasAbc} />
           </div>
 
           <FilterBar
@@ -394,8 +338,8 @@ export default function App() {
             hideAcked={hideAcked}
             onHideAckedChange={setHideAcked}
             ackedCount={investigatedCount}
-            hasAbc={true}
-            abcIsMock={abcIsMock}
+            hasAbc={hasAbc}
+            abcPending={!hasAbc}
           />
 
           <StockTable
@@ -407,12 +351,11 @@ export default function App() {
             threshold={threshold}
             investigated={investigated}
             onAck={handleInvestigate}
-            hasAbc={true}
+            hasAbc={hasAbc}
           />
         </main>
       )}
 
-      {/* Notification panel */}
       {notifOpen && (
         <NotificationPanel
           items={withABC}

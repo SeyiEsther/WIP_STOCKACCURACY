@@ -18,9 +18,9 @@ const STATUS_ACTIVE = {
 
 const ABC_CHIPS = [
   { key: 'ALL', label: 'All' },
-  { key: 'A',   label: 'A',  color: 'var(--amber)', bg: 'var(--amber-bg)', border: 'var(--amber-border)' },
-  { key: 'B',   label: 'B',  color: 'var(--blue)',  bg: 'var(--blue-bg)',  border: 'var(--blue-border)'  },
-  { key: 'C',   label: 'C',  color: 'var(--grey)',  bg: 'var(--grey-bg)',  border: 'var(--grey-border)'  },
+  { key: 'A',   label: 'A',  color: '#92400e', bg: '#fef3c7', border: '#fcd34d' },
+  { key: 'B',   label: 'B',  color: 'var(--grey)',  bg: 'var(--grey-bg)',  border: 'var(--grey-border)'  },
+  { key: 'C',   label: 'C',  color: 'var(--blue)',  bg: 'var(--blue-bg)',  border: 'var(--blue-border)'  },
 ]
 
 export default function FilterBar({
@@ -31,7 +31,7 @@ export default function FilterBar({
   sloc, slocs, onSlocChange,
   threshold, onThresholdChange,
   // ABC
-  abcFilter, onAbcFilterChange, hasAbc, abcIsMock,
+  abcFilter, onAbcFilterChange, hasAbc, abcPending,
   // trend
   trendOnly, onTrendOnlyChange, trendDays, onTrendDaysChange,
   // ack
@@ -110,6 +110,21 @@ export default function FilterBar({
                 />
               ))}
             </div>
+            {abcPending && (
+              <span
+                title="ABC classes require MaterialUsage data from SAP (usage count in last 60 days: A >750, B 100–750, C <100)."
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 9,
+                  fontWeight: 600,
+                  letterSpacing: '0.04em',
+                  color: 'var(--tx-lo)',
+                  fontStyle: 'italic',
+                }}
+              >
+                Class filter pending SAP usage data
+              </span>
+            )}
           </div>
         )}
 
@@ -133,7 +148,7 @@ export default function FilterBar({
             <span>over</span>
             <input
               type="number" min={2} max={30} value={trendDays}
-              onChange={e => onTrendDaysChange(Math.max(2, Number(e.target.value) || 2))}
+              onChange={e => onTrendDaysChange(Math.min(30, Math.max(2, Number(e.target.value) || 2)))}
               style={{ width: 40, padding: '3px 5px', textAlign: 'right', borderRadius: 4 }}
             />
             <span>days</span>
