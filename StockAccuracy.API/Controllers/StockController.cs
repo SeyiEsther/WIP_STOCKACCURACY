@@ -15,12 +15,18 @@ public class StockController : ControllerBase
     private readonly IStockRepository _repo;
     private readonly IConfiguration   _config;
     private readonly ILogger<StockController> _log;
+    private readonly IWebHostEnvironment _env;
 
-    public StockController(IStockRepository repo, IConfiguration config, ILogger<StockController> log)
+    public StockController(
+        IStockRepository repo,
+        IConfiguration config,
+        ILogger<StockController> log,
+        IWebHostEnvironment env)
     {
         _repo   = repo;
         _config = config;
         _log    = log;
+        _env    = env;
     }
 
     // Navigate to /api/stock/health in the browser to see the real connection error
@@ -29,7 +35,10 @@ public class StockController : ControllerBase
     {
         var cs = _config.GetConnectionString("StockDb");
         if (string.IsNullOrWhiteSpace(cs))
-            return StatusCode(500, new { error = "Connection string 'StockDb' is missing from appsettings.json" });
+            return StatusCode(500, new {
+                error = "Connection string 'StockDb' is not configured. " +
+                        "Set the ConnectionStrings__StockDb environment variable."
+            });
 
         try
         {
@@ -52,7 +61,7 @@ public class StockController : ControllerBase
         catch (Exception ex)
         {
             _log.LogError(ex, "Health check failed");
-            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
+            return StatusCode(500, ErrorBody(ex));
         }
     }
 
@@ -67,7 +76,7 @@ public class StockController : ControllerBase
         catch (Exception ex)
         {
             _log.LogError(ex, "GET comparison failed");
-            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
+            return StatusCode(500, ErrorBody(ex));
         }
     }
 
@@ -82,22 +91,22 @@ public class StockController : ControllerBase
         catch (Exception ex)
         {
             _log.LogError(ex, "GET summary failed");
-            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
+            return StatusCode(500, ErrorBody(ex));
         }
     }
 
     [HttpGet("trend")]
-    public async Task<IActionResult> GetTrend()
+    public async Task<IActionResult> GetTrend([FromQuery] decimal threshold = 10)
     {
         try
         {
-            var data = await _repo.GetStockTrendAsync();
+            var data = await _repo.GetStockTrendAsync(threshold);
             return Ok(data);
         }
         catch (Exception ex)
         {
             _log.LogError(ex, "GET trend failed");
-            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
+            return StatusCode(500, ErrorBody(ex));
         }
     }
 
@@ -112,7 +121,7 @@ public class StockController : ControllerBase
         catch (Exception ex)
         {
             _log.LogError(ex, "GET material-trends failed");
-            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
+            return StatusCode(500, ErrorBody(ex));
         }
     }
 
@@ -127,7 +136,7 @@ public class StockController : ControllerBase
         catch (Exception ex)
         {
             _log.LogError(ex, "GET watchlist failed");
-            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
+            return StatusCode(500, ErrorBody(ex));
         }
     }
 
@@ -136,12 +145,13 @@ public class StockController : ControllerBase
         [FromQuery] string?  status,
         [FromQuery] string?  sloc,
         [FromQuery] string?  search,
+        [FromQuery] string?  abcClass,
         [FromQuery] decimal  threshold = 10)
     {
         try
         {
             var data     = await _repo.GetStockComparisonAsync();
-            var filtered = ApplyFilters(data, status, sloc, search, threshold);
+            var filtered = ApplyFilters(data, status, sloc, search, threshold, abcClass);
 
             var stream = new MemoryStream();
             using (var writer = new StreamWriter(stream, leaveOpen: true))
@@ -156,16 +166,22 @@ public class StockController : ControllerBase
         catch (Exception ex)
         {
             _log.LogError(ex, "Export failed");
-            return StatusCode(500, new { error = ex.Message });
+            return StatusCode(500, ErrorBody(ex));
         }
     }
+
+    private object ErrorBody(Exception ex) =>
+        _env.IsDevelopment()
+            ? new { error = ex.Message, type = ex.GetType().Name }
+            : new { error = "An internal server error occurred." };
 
     private static IEnumerable<StockComparison> ApplyFilters(
         IEnumerable<StockComparison> data,
         string?  status,
         string?  sloc,
         string?  search,
-        decimal  threshold)
+        decimal  threshold,
+        string?  abcClass = null)
     {
         if (!string.IsNullOrWhiteSpace(sloc))
             data = data.Where(r => r.SLoc == sloc);
@@ -174,13 +190,22 @@ public class StockController : ControllerBase
         {
             var q = search.Trim().ToLowerInvariant();
             data = data.Where(r =>
-                r.MaterialNumber.ToLowerInvariant().Contains(q) ||
-                r.MaterialDesc.ToLowerInvariant().Contains(q));
+                (r.MaterialNumber ?? "").ToLowerInvariant().Contains(q) ||
+                (r.MaterialDesc   ?? "").ToLowerInvariant().Contains(q));
+        }
+
+        if (!string.IsNullOrWhiteSpace(abcClass) && abcClass.ToUpperInvariant() != "ALL")
+        {
+            var cls = abcClass.ToUpperInvariant();
+            data = data.Where(r => string.Equals(r.AbcClass, cls, StringComparison.OrdinalIgnoreCase));
         }
 
         data = status?.ToUpperInvariant() switch
         {
-            "FLAGGED" => data.Where(r => Math.Abs(r.PctChange) > threshold),
+            "FLAGGED" => data.Where(r =>
+                r.Status != "NEW" &&
+                r.Status != "MISSING" &&
+                Math.Abs(r.PctChange) > threshold),
             "UP"      => data.Where(r => r.Delta > 0),
             "DOWN"    => data.Where(r => r.Delta < 0),
             "NEW"     => data.Where(r => r.Status == "NEW"),

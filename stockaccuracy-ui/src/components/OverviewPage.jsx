@@ -406,7 +406,9 @@ export default function OverviewPage({ rows, summary, trend, loading, threshold 
   // ── Row 1: counts ────────────────────────────────────────────────────────
   const totalTracked = summary?.totalTracked ?? summary?.TotalTracked ?? rows.length
   const flaggedToday = useMemo(
-    () => rows.filter(r => Math.abs(r.pctChange) > threshold).length,
+    () => rows.filter(r =>
+      r.status !== 'NEW' && r.status !== 'MISSING' && Math.abs(r.pctChange) > threshold
+    ).length,
     [rows, threshold]
   )
   const newToday = summary?.totalNew ?? summary?.TotalNew ?? rows.filter(r => r.status === 'NEW').length
@@ -414,14 +416,16 @@ export default function OverviewPage({ rows, summary, trend, loading, threshold 
 
   // ── Stock Health donut ───────────────────────────────────────────────────
   const { healthData, healthPct } = useMemo(() => {
-    const ok      = rows.filter(r => r.status !== 'MISSING' && r.status !== 'NEW' && Math.abs(r.pctChange) <= threshold).length
-    const flagged = rows.filter(r => Math.abs(r.pctChange) > threshold).length
-    const missing = rows.filter(r => r.status === 'MISSING').length
-    const total   = ok + flagged + missing
+    const newCount  = rows.filter(r => r.status === 'NEW').length
+    const ok        = rows.filter(r => r.status !== 'MISSING' && r.status !== 'NEW' && Math.abs(r.pctChange) <= threshold).length
+    const flagged   = rows.filter(r => r.status !== 'NEW' && r.status !== 'MISSING' && Math.abs(r.pctChange) > threshold).length
+    const missing   = rows.filter(r => r.status === 'MISSING').length
+    const total     = ok + flagged + newCount + missing
     return {
       healthData: [
         { name: 'OK',      value: ok,      color: C.green  },
         { name: 'Flagged', value: flagged, color: C.orange },
+        { name: 'New',     value: newCount, color: C.blue  },
         { name: 'Missing', value: missing, color: C.red    },
       ],
       healthPct: total > 0 ? Math.round((ok / total) * 100) : 0,
@@ -430,7 +434,9 @@ export default function OverviewPage({ rows, summary, trend, loading, threshold 
 
   // ── Flagged by Direction donut ───────────────────────────────────────────
   const directionData = useMemo(() => {
-    const flagged = rows.filter(r => Math.abs(r.pctChange) > threshold)
+    const flagged = rows.filter(r =>
+      r.status !== 'NEW' && r.status !== 'MISSING' && Math.abs(r.pctChange) > threshold
+    )
     const up   = flagged.filter(r => (r.delta ?? 0) > 0).length
     const down = flagged.filter(r => (r.delta ?? 0) < 0).length
     return [
@@ -441,7 +447,9 @@ export default function OverviewPage({ rows, summary, trend, loading, threshold 
 
   // ── Flagged by SLoc donut ────────────────────────────────────────────────
   const slocData = useMemo(() => {
-    const flagged = rows.filter(r => Math.abs(r.pctChange) > threshold)
+    const flagged = rows.filter(r =>
+      r.status !== 'NEW' && r.status !== 'MISSING' && Math.abs(r.pctChange) > threshold
+    )
     const map = {}
     flagged.forEach(r => { map[r.sLoc] = (map[r.sLoc] || 0) + 1 })
     return Object.entries(map)

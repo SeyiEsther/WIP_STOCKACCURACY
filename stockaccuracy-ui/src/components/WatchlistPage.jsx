@@ -4,7 +4,7 @@ import { norm } from '../lib/normalize.js'
 
 const API_BASE = '/api/stock'
 
-export default function WatchlistPage() {
+export default function WatchlistPage({ threshold, investigated, onInvestigate }) {
   const [rows,        setRows]        = useState([])
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState(null)
@@ -35,6 +35,8 @@ export default function WatchlistPage() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
+  const hasAbc = useMemo(() => rows.some(r => r.abcClass != null), [rows])
+
   const sorted = useMemo(() => {
     const dir = sortDir === 'asc' ? 1 : -1
     return [...rows].sort((a, b) => {
@@ -64,11 +66,11 @@ export default function WatchlistPage() {
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 700, color: 'var(--tx-hi)' }}>
             Watchlist
           </div>
-          {lastUpdated && (
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--tx-lo)', marginTop: 2 }}>
-              refreshed {lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-            </div>
-          )}
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--tx-lo)', marginTop: 2 }}>
+            {lastUpdated
+              ? `refreshed ${lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`
+              : 'Materials flagged for closer monitoring — add rows to dbo.Watchlist in SQL'}
+          </div>
         </div>
         <button
           onClick={fetchData}
@@ -103,19 +105,34 @@ export default function WatchlistPage() {
         </div>
       )}
 
+      {!loading && !error && rows.length === 0 && (
+        <div style={{
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
+          padding: '24px 20px',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 11,
+          color: 'var(--tx-lo)',
+          lineHeight: 1.6,
+        }}>
+          No materials on the watchlist yet. Add material/SLoc pairs to{' '}
+          <code style={{ color: 'var(--tx-body)' }}>dbo.Watchlist</code> in the database.
+        </div>
+      )}
+
       <StockTable
         rows={sorted}
         loading={loading}
         sortKey={sortKey}
         sortDir={sortDir}
         onSort={handleSort}
-        threshold={10}
-        investigated={{}}
-        onAck={() => {}}
-        hasAbc={false}
+        threshold={threshold}
+        investigated={investigated}
+        onAck={onInvestigate}
+        hasAbc={hasAbc}
         showImpact={false}
         showTrend={false}
-        showAck={false}
+        showAck={true}
       />
     </main>
   )

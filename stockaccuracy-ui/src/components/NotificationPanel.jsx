@@ -260,9 +260,9 @@ function NCard({ row, investigatedAt, onInvestigate }) {
 // ─── ABC pip ─────────────────────────────────────────────────────────────────
 function AbcPip({ cls }) {
   const T = {
-    A: { color: 'var(--amber)', bg: 'var(--amber-bg)', border: 'var(--amber-border)' },
-    B: { color: 'var(--blue)',  bg: 'var(--blue-bg)',  border: 'var(--blue-border)'  },
-    C: { color: 'var(--grey)',  bg: 'var(--grey-bg)',  border: 'var(--grey-border)'  },
+    A: { color: '#92400e', bg: '#fef3c7', border: '#fcd34d' },
+    B: { color: 'var(--grey)',  bg: 'var(--grey-bg)',  border: 'var(--grey-border)'  },
+    C: { color: 'var(--blue)',  bg: 'var(--blue-bg)',  border: 'var(--blue-border)'  },
   }
   const d = T[cls]
   if (!d) return null

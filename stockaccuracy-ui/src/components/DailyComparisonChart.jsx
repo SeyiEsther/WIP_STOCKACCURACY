@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ReferenceLine, ResponsiveContainer,
@@ -71,8 +71,12 @@ const ABC_FILTER_OPTS = [
   { key: 'ALL', label: 'All', color: 'var(--tx-body)', bg: 'var(--bg-inset)', border: 'var(--border-sub)' },
 ]
 
-export default function DailyComparisonChart({ data, threshold = 10 }) {
-  const [abcFilter, setAbcFilter] = useState('A')
+export default function DailyComparisonChart({ data, threshold = 10, hasAbc = false }) {
+  const [abcFilter, setAbcFilter] = useState(hasAbc ? 'A' : 'ALL')
+
+  useEffect(() => {
+    setAbcFilter(hasAbc ? 'A' : 'ALL')
+  }, [hasAbc])
 
   const { chartData, outliers } = useMemo(() => {
     const all = [...(data || [])]

@@ -10,6 +10,8 @@ public class StockComparison
     public decimal Delta          { get; set; }
     public decimal PctChange      { get; set; }
     public string  Status         { get; set; } = string.Empty;
+    public string? AbcClass        { get; set; }
+    public int?    UsageCount      { get; set; }
     public string  BaseUnit       { get; set; } = string.Empty;
     public string? MRPController  { get; set; }
     public DateTime TodayDate     { get; set; }
