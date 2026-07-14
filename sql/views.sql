@@ -96,22 +96,23 @@ FROM dbo.vw_StockComparison;
 
 -- ------------------------------------
 -- Watchlist
--- Materials/SLocs flagged for closer monitoring
+-- Materials flagged for closer monitoring.
+-- Keyed on MaterialNumber only: a watched material is monitored across
+-- ALL of its storage locations (SLocs).
 -- ------------------------------------
 IF OBJECT_ID('dbo.Watchlist', 'U') IS NULL
 CREATE TABLE dbo.Watchlist (
     MaterialNumber NVARCHAR(18) NOT NULL,
-    SLoc           NVARCHAR(4)  NOT NULL,
-    CONSTRAINT PK_Watchlist PRIMARY KEY (MaterialNumber, SLoc)
+    CONSTRAINT PK_Watchlist PRIMARY KEY (MaterialNumber)
 );
 
 -- ------------------------------------
 -- vw_WatchlistComparison
--- Same shape as vw_StockComparison, scoped to watchlisted material/SLoc pairs
+-- Same shape as vw_StockComparison, scoped to watchlisted materials
+-- (one row per material/SLoc pair that exists in the snapshot).
 -- ------------------------------------
 CREATE OR ALTER VIEW dbo.vw_WatchlistComparison AS
 SELECT c.*
 FROM dbo.vw_StockComparison c
 INNER JOIN dbo.Watchlist w
-    ON  w.MaterialNumber = c.MaterialNumber
-    AND w.SLoc           = c.SLoc;
+    ON  w.MaterialNumber = c.MaterialNumber;
