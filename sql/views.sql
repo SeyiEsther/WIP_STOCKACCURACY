@@ -116,3 +116,17 @@ SELECT c.*
 FROM dbo.vw_StockComparison c
 INNER JOIN dbo.Watchlist w
     ON  w.MaterialNumber = c.MaterialNumber;
+
+-- ------------------------------------
+-- Investigation
+-- Server-side record of materials/SLocs a user has marked as investigated,
+-- so acknowledgements are shared across users and browsers.
+-- ------------------------------------
+IF OBJECT_ID('dbo.Investigation', 'U') IS NULL
+CREATE TABLE dbo.Investigation (
+    MaterialNumber NVARCHAR(18) NOT NULL,
+    SLoc           NVARCHAR(4)  NOT NULL,
+    InvestigatedAt DATETIME2    NOT NULL CONSTRAINT DF_Investigation_At DEFAULT SYSUTCDATETIME(),
+    Note           NVARCHAR(400) NULL,
+    CONSTRAINT PK_Investigation PRIMARY KEY (MaterialNumber, SLoc)
+);

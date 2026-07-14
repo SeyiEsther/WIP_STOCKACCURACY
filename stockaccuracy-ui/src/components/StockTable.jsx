@@ -1,3 +1,5 @@
+import { deriveStatus } from '../lib/stock.js'
+
 // ─── formatters ─────────────────────────────────────────────────────────────
 const fmtQty = (n) => {
   if (n == null) return '—'
@@ -17,19 +19,7 @@ const fmtValue = (n) => {
   }).format(n)
 }
 
-// ─── status derivation ───────────────────────────────────────────────────────
-function iid(mat, sloc) { return `${mat}__${sloc}` }
-
-function deriveStatus(row, threshold, investigated) {
-  if (row.status === 'NEW')     return 'NEW'
-  if (row.status === 'MISSING') return 'MISSING'
-  if (Math.abs(row.pctChange) > threshold) {
-    if (investigated?.[iid(row.materialNumber, row.sLoc)]) return 'INVESTIGATED'
-    return row.delta >= 0 ? 'UP' : 'DOWN'
-  }
-  return 'OK'
-}
-
+// ─── status styling ───────────────────────────────────────────────────────────
 const STATUS_DEF = {
   OK:           { label: 'OK',         color: 'var(--tx-faint)', bg: 'transparent',     border: 'var(--border)'       },
   UP:           { label: '▲ UP',       color: 'var(--green)',    bg: 'var(--green-bg)', border: 'var(--green-border)' },

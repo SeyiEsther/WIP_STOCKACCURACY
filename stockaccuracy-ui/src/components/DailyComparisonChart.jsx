@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ReferenceLine, ResponsiveContainer,
@@ -64,20 +64,10 @@ function ColoredDot(props) {
   )
 }
 
-const ABC_FILTER_OPTS = [
-  { key: 'A',   label: 'A', color: '#92400e', bg: '#fef3c7', border: '#fcd34d' },
-  { key: 'B',   label: 'B', color: 'var(--grey)',  bg: 'var(--grey-bg)',  border: 'var(--grey-border)'  },
-  { key: 'C',   label: 'C', color: 'var(--blue)',  bg: 'var(--blue-bg)',  border: 'var(--blue-border)'  },
-  { key: 'ALL', label: 'All', color: 'var(--tx-body)', bg: 'var(--bg-inset)', border: 'var(--border-sub)' },
-]
-
 export default function DailyComparisonChart({ data, threshold = 10 }) {
-  const [abcFilter, setAbcFilter] = useState('A')
-
   const { chartData, outliers } = useMemo(() => {
     const all = [...(data || [])]
       .filter(r => r.status !== 'MISSING')
-      .filter(r => abcFilter === 'ALL' || (r.abcClass ?? null) === abcFilter)
       .sort((a, b) => Math.abs(b.pctChange) - Math.abs(a.pctChange))
       .slice(0, 25)
       .map(r => ({
@@ -94,7 +84,7 @@ export default function DailyComparisonChart({ data, threshold = 10 }) {
       chartData: all.filter(r => Math.abs(r.pctChange) <= OUTLIER_THRESHOLD),
       outliers:  all.filter(r => Math.abs(r.pctChange)  > OUTLIER_THRESHOLD),
     }
-  }, [data, threshold, abcFilter])
+  }, [data, threshold])
 
   return (
     <div style={{
@@ -105,32 +95,6 @@ export default function DailyComparisonChart({ data, threshold = 10 }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <ChartLabel style={{ marginBottom: 0 }}>Today vs Yesterday — % Change (top movers, outliers &gt;{OUTLIER_THRESHOLD}% excluded)</ChartLabel>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--tx-faint)', marginRight: 2 }}>Class</span>
-          {ABC_FILTER_OPTS.map(o => {
-            const active = abcFilter === o.key
-            return (
-              <button
-                key={o.key}
-                onClick={() => setAbcFilter(o.key)}
-                style={{
-                  padding: '2px 9px',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 10,
-                  fontWeight: active ? 700 : 400,
-                  background: active ? o.bg : 'transparent',
-                  border: active ? `1px solid ${o.border}` : '1px solid var(--border)',
-                  color: active ? o.color : 'var(--tx-lo)',
-                  borderRadius: 20,
-                  cursor: 'pointer',
-                  transition: 'all 0.1s',
-                }}
-              >
-                {o.label}
-              </button>
-            )
-          })}
-        </div>
       </div>
 
       {chartData.length === 0 ? (

@@ -11,6 +11,9 @@ public interface IStockRepository
     Task<IEnumerable<StockTrend>>      GetStockTrendAsync();
     Task<IEnumerable<MaterialTrend>>   GetMaterialTrendsAsync(int days = 5);
     Task<IEnumerable<StockComparison>> GetWatchlistComparisonAsync();
+    Task<IEnumerable<Investigation>>   GetInvestigationsAsync();
+    Task AddInvestigationAsync(string materialNumber, string sLoc, string? note);
+    Task RemoveInvestigationAsync(string materialNumber, string sLoc);
 }
 
 public class StockRepository : IStockRepository
@@ -101,6 +104,60 @@ public class StockRepository : IStockRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to query vw_WatchlistComparison");
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<Investigation>> GetInvestigationsAsync()
+    {
+        try
+        {
+            using var conn = new SqlConnection(_connectionString);
+            return await conn.QueryAsync<Investigation>(
+                "SELECT MaterialNumber, SLoc, InvestigatedAt, Note FROM dbo.Investigation");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to query dbo.Investigation");
+            throw;
+        }
+    }
+
+    public async Task AddInvestigationAsync(string materialNumber, string sLoc, string? note)
+    {
+        try
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.ExecuteAsync(@"
+                MERGE dbo.Investigation AS tgt
+                USING (SELECT @MaterialNumber AS MaterialNumber, @SLoc AS SLoc) AS src
+                    ON tgt.MaterialNumber = src.MaterialNumber AND tgt.SLoc = src.SLoc
+                WHEN MATCHED THEN
+                    UPDATE SET InvestigatedAt = SYSUTCDATETIME(), Note = @Note
+                WHEN NOT MATCHED THEN
+                    INSERT (MaterialNumber, SLoc, InvestigatedAt, Note)
+                    VALUES (@MaterialNumber, @SLoc, SYSUTCDATETIME(), @Note);",
+                new { MaterialNumber = materialNumber, SLoc = sLoc, Note = note });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to add investigation for {Material}/{SLoc}", materialNumber, sLoc);
+            throw;
+        }
+    }
+
+    public async Task RemoveInvestigationAsync(string materialNumber, string sLoc)
+    {
+        try
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.ExecuteAsync(
+                "DELETE FROM dbo.Investigation WHERE MaterialNumber = @MaterialNumber AND SLoc = @SLoc",
+                new { MaterialNumber = materialNumber, SLoc = sLoc });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to remove investigation for {Material}/{SLoc}", materialNumber, sLoc);
             throw;
         }
     }

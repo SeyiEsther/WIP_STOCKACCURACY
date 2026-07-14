@@ -12,24 +12,37 @@ namespace StockAccuracy.API.Controllers;
 [Route("api/[controller]")]
 public class StockController : ControllerBase
 {
-    private readonly IStockRepository _repo;
-    private readonly IConfiguration   _config;
+    private readonly IStockRepository  _repo;
+    private readonly IConfiguration    _config;
+    private readonly IHostEnvironment  _env;
     private readonly ILogger<StockController> _log;
 
-    public StockController(IStockRepository repo, IConfiguration config, ILogger<StockController> log)
+    public StockController(IStockRepository repo, IConfiguration config, IHostEnvironment env, ILogger<StockController> log)
     {
         _repo   = repo;
         _config = config;
+        _env    = env;
         _log    = log;
     }
 
-    // Navigate to /api/stock/health in the browser to see the real connection error
+    // Logs the full exception server-side and returns a client-safe payload.
+    // Detailed messages are only surfaced in Development.
+    private IActionResult ServerError(Exception ex, string context)
+    {
+        _log.LogError(ex, "{Context}", context);
+        object payload = _env.IsDevelopment()
+            ? new { error = ex.Message, type = ex.GetType().Name }
+            : new { error = "Internal server error" };
+        return StatusCode(500, payload);
+    }
+
+    // Navigate to /api/stock/health to verify the DB connection and schema.
     [HttpGet("health")]
     public async Task<IActionResult> Health()
     {
         var cs = _config.GetConnectionString("StockDb");
         if (string.IsNullOrWhiteSpace(cs))
-            return StatusCode(500, new { error = "Connection string 'StockDb' is missing from appsettings.json" });
+            return StatusCode(500, new { error = "Connection string 'StockDb' is not configured." });
 
         try
         {
@@ -40,19 +53,27 @@ public class StockController : ControllerBase
                 "SELECT name FROM sys.views WHERE name IN ('vw_StockComparison','vw_StockSummary','vw_WatchlistComparison') ORDER BY name"
             )).ToList();
 
+            var tables = (await conn.QueryAsync<string>(
+                "SELECT name FROM sys.tables WHERE name IN ('StockSnapshot','Watchlist','Investigation') ORDER BY name"
+            )).ToList();
+
             return Ok(new
             {
-                status   = "connected",
-                server   = conn.DataSource,
-                database = conn.Database,
+                status    = "connected",
+                server    = conn.DataSource,
+                database  = conn.Database,
                 views,
-                viewsOk  = views.Count == 3,
+                viewsOk   = views.Count == 3,
+                tables,
+                tablesOk  = tables.Count == 3,
             });
         }
         catch (Exception ex)
         {
             _log.LogError(ex, "Health check failed");
-            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
+            // Health is a diagnostic endpoint; surface the reason only in Development.
+            var detail = _env.IsDevelopment() ? ex.Message : "Database connection failed.";
+            return StatusCode(500, new { error = detail });
         }
     }
 
@@ -66,8 +87,7 @@ public class StockController : ControllerBase
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, "GET comparison failed");
-            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
+            return ServerError(ex, "GET comparison failed");
         }
     }
 
@@ -81,8 +101,7 @@ public class StockController : ControllerBase
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, "GET summary failed");
-            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
+            return ServerError(ex, "GET summary failed");
         }
     }
 
@@ -96,8 +115,7 @@ public class StockController : ControllerBase
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, "GET trend failed");
-            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
+            return ServerError(ex, "GET trend failed");
         }
     }
 
@@ -111,8 +129,7 @@ public class StockController : ControllerBase
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, "GET material-trends failed");
-            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
+            return ServerError(ex, "GET material-trends failed");
         }
     }
 
@@ -126,8 +143,55 @@ public class StockController : ControllerBase
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, "GET watchlist failed");
-            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
+            return ServerError(ex, "GET watchlist failed");
+        }
+    }
+
+    [HttpGet("investigations")]
+    public async Task<IActionResult> GetInvestigations()
+    {
+        try
+        {
+            var data = await _repo.GetInvestigationsAsync();
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            return ServerError(ex, "GET investigations failed");
+        }
+    }
+
+    [HttpPost("investigations")]
+    public async Task<IActionResult> AddInvestigation([FromBody] InvestigationRequest req)
+    {
+        if (req is null || string.IsNullOrWhiteSpace(req.MaterialNumber) || string.IsNullOrWhiteSpace(req.SLoc))
+            return BadRequest(new { error = "materialNumber and sLoc are required." });
+
+        try
+        {
+            await _repo.AddInvestigationAsync(req.MaterialNumber.Trim(), req.SLoc.Trim(), req.Note);
+            return Ok(new { ok = true });
+        }
+        catch (Exception ex)
+        {
+            return ServerError(ex, "POST investigation failed");
+        }
+    }
+
+    [HttpDelete("investigations")]
+    public async Task<IActionResult> RemoveInvestigation([FromQuery] string materialNumber, [FromQuery] string sloc)
+    {
+        if (string.IsNullOrWhiteSpace(materialNumber) || string.IsNullOrWhiteSpace(sloc))
+            return BadRequest(new { error = "materialNumber and sloc are required." });
+
+        try
+        {
+            await _repo.RemoveInvestigationAsync(materialNumber.Trim(), sloc.Trim());
+            return Ok(new { ok = true });
+        }
+        catch (Exception ex)
+        {
+            return ServerError(ex, "DELETE investigation failed");
         }
     }
 
@@ -155,8 +219,7 @@ public class StockController : ControllerBase
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, "Export failed");
-            return StatusCode(500, new { error = ex.Message });
+            return ServerError(ex, "Export failed");
         }
     }
 

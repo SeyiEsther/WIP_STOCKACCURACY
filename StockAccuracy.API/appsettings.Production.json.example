@@ -1,0 +1,9 @@
+{
+  "_comment": "Copy this file to appsettings.Production.json (which is git-ignored) OR set these as environment variables. Never commit real credentials.",
+  "ConnectionStrings": {
+    "StockDb": "Data Source=YOUR_SERVER;Initial Catalog=StockAccuracy;User ID=YOUR_USER;Password=YOUR_PASSWORD;TrustServerCertificate=True"
+  },
+  "Cors": {
+    "AllowedOrigins": [ "https://your-dashboard-host" ]
+  }
+}
