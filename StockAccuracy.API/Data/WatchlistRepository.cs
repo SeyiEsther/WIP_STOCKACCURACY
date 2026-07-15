@@ -16,8 +16,10 @@ public class WatchlistRepository : IWatchlistRepository
 
     public WatchlistRepository(IConfiguration config, ILogger<WatchlistRepository> logger)
     {
-        _connectionString = config.GetConnectionString("CsmDataWh")
-            ?? throw new InvalidOperationException("Connection string 'CsmDataWh' is not configured.");
+        // Read the SQL-auth connection string straight from configuration and open
+        // a raw SqlConnection with it (below) — no Entity Framework, no Windows Auth.
+        _connectionString = config.GetConnectionString("DataWarehouseConnection")
+            ?? throw new InvalidOperationException("Connection string 'DataWarehouseConnection' is not configured.");
         _logger = logger;
     }
 

@@ -54,7 +54,7 @@ public class StockController : ControllerBase
             )).ToList();
 
             var tables = (await conn.QueryAsync<string>(
-                "SELECT name FROM sys.tables WHERE name IN ('StockSnapshot','Watchlist','Investigation') ORDER BY name"
+                "SELECT name FROM sys.tables WHERE name IN ('StockSnapshots','Watchlist','Investigation') ORDER BY name"
             )).ToList();
 
             return Ok(new

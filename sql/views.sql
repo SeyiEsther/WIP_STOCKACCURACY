@@ -7,8 +7,8 @@
 -- Daily snapshot table (populated by
 -- a scheduled SQL Agent job or SSIS package)
 -- ------------------------------------
-IF OBJECT_ID('dbo.StockSnapshot', 'U') IS NULL
-CREATE TABLE dbo.StockSnapshot (
+IF OBJECT_ID('dbo.StockSnapshots', 'U') IS NULL
+CREATE TABLE dbo.StockSnapshots (
     SnapshotDate   DATE         NOT NULL,
     MaterialNumber NVARCHAR(18) NOT NULL,
     MaterialDesc   NVARCHAR(40) NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE dbo.StockSnapshot (
     Qty            DECIMAL(15,3) NOT NULL DEFAULT 0,
     BaseUnit       NVARCHAR(3)  NOT NULL DEFAULT 'EA',
     MRPController  NVARCHAR(3)  NULL,
-    CONSTRAINT PK_StockSnapshot PRIMARY KEY (SnapshotDate, MaterialNumber, SLoc)
+    CONSTRAINT PK_StockSnapshots PRIMARY KEY (SnapshotDate, MaterialNumber, SLoc)
 );
 
 -- ------------------------------------
@@ -26,11 +26,11 @@ CREATE TABLE dbo.StockSnapshot (
 -- ------------------------------------
 CREATE OR ALTER VIEW dbo.vw_StockComparison AS
 WITH Today AS (
-    SELECT * FROM dbo.StockSnapshot
+    SELECT * FROM dbo.StockSnapshots
     WHERE SnapshotDate = CAST(GETDATE() AS DATE)
 ),
 Yesterday AS (
-    SELECT * FROM dbo.StockSnapshot
+    SELECT * FROM dbo.StockSnapshots
     WHERE SnapshotDate = CAST(DATEADD(DAY, -1, GETDATE()) AS DATE)
 ),
 Combined AS (

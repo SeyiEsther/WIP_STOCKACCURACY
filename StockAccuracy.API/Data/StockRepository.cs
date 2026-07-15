@@ -73,14 +73,14 @@ public class StockRepository : IStockRepository
                          AND ABS((t.Qty - y.Qty) / NULLIF(y.Qty, 0) * 100) > 10
                         THEN 1 ELSE 0
                     END) AS Flagged
-                FROM dbo.StockSnapshot t
-                LEFT JOIN dbo.StockSnapshot y
+                FROM dbo.StockSnapshots t
+                LEFT JOIN dbo.StockSnapshots y
                     ON  y.MaterialNumber = t.MaterialNumber
                     AND y.SLoc           = t.SLoc
                     AND y.SnapshotDate   = DATEADD(DAY, -1, t.SnapshotDate)
                 WHERE t.SnapshotDate IN (
                     SELECT TOP 7 SnapshotDate
-                    FROM (SELECT DISTINCT SnapshotDate FROM dbo.StockSnapshot) d
+                    FROM (SELECT DISTINCT SnapshotDate FROM dbo.StockSnapshots) d
                     ORDER BY SnapshotDate DESC
                 )
                 GROUP BY t.SnapshotDate
@@ -179,7 +179,7 @@ public class StockRepository : IStockRepository
             return await conn.QueryAsync<MaterialTrend>(@"
                 WITH RecentDates AS (
                     SELECT TOP (@Days + 1) SnapshotDate
-                    FROM (SELECT DISTINCT SnapshotDate FROM dbo.StockSnapshot) d
+                    FROM (SELECT DISTINCT SnapshotDate FROM dbo.StockSnapshots) d
                     ORDER BY SnapshotDate DESC
                 ),
                 Snaps AS (
@@ -189,7 +189,7 @@ public class StockRepository : IStockRepository
                             PARTITION BY s.MaterialNumber, s.SLoc
                             ORDER BY s.SnapshotDate
                         ) AS PrevQty
-                    FROM dbo.StockSnapshot s
+                    FROM dbo.StockSnapshots s
                     INNER JOIN RecentDates rd ON rd.SnapshotDate = s.SnapshotDate
                 ),
                 Steps AS (

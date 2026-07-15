@@ -30,7 +30,7 @@ END
 -- ------------------------------------
 -- Seed
 -- Descriptions are informational only (comments) — the watchlist stores
--- MaterialNumber; the description is resolved from dbo.StockSnapshot.
+-- MaterialNumber; the description is resolved from dbo.StockSnapshots.
 -- ------------------------------------
 INSERT INTO dbo.Watchlist (MaterialNumber)
 SELECT v.MaterialNumber
