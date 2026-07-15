@@ -113,8 +113,11 @@ public class StockRepository : IStockRepository
         try
         {
             using var conn = new SqlConnection(_connectionString);
-            return await conn.QueryAsync<Investigation>(
-                "SELECT MaterialNumber, SLoc, InvestigatedAt FROM dbo.Investigations");
+            // One row per material/SLoc (the table may hold several, one per snapshot date).
+            return await conn.QueryAsync<Investigation>(@"
+                SELECT MaterialNumber, SLoc, MAX(InvestigatedAt) AS InvestigatedAt
+                FROM dbo.Investigations
+                GROUP BY MaterialNumber, SLoc");
         }
         catch (Exception ex)
         {
@@ -129,15 +132,17 @@ public class StockRepository : IStockRepository
         {
             using var conn = new SqlConnection(_connectionString);
             await conn.ExecuteAsync(@"
-                MERGE dbo.Investigations AS tgt
-                USING (SELECT @MaterialNumber AS MaterialNumber, @SLoc AS SLoc) AS src
-                    ON tgt.MaterialNumber = src.MaterialNumber AND tgt.SLoc = src.SLoc
-                WHEN MATCHED THEN
-                    UPDATE SET InvestigatedAt = SYSUTCDATETIME()
-                WHEN NOT MATCHED THEN
-                    INSERT (MaterialNumber, SLoc, InvestigatedAt)
-                    VALUES (@MaterialNumber, @SLoc, SYSUTCDATETIME());",
-                new { MaterialNumber = materialNumber, SLoc = sLoc });
+                IF EXISTS (SELECT 1 FROM dbo.Investigations
+                           WHERE MaterialNumber = @MaterialNumber AND SLoc = @SLoc)
+                    UPDATE dbo.Investigations
+                       SET InvestigatedAt = GETDATE()
+                     WHERE MaterialNumber = @MaterialNumber AND SLoc = @SLoc;
+                ELSE
+                    INSERT INTO dbo.Investigations
+                        (MaterialNumber, SLoc, SnapshotDate, InvestigatedAt, InvestigatedBy)
+                    VALUES
+                        (@MaterialNumber, @SLoc, CAST(GETDATE() AS DATE), GETDATE(), @InvestigatedBy);",
+                new { MaterialNumber = materialNumber, SLoc = sLoc, InvestigatedBy = "Dashboard" });
         }
         catch (Exception ex)
         {
