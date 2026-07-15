@@ -127,6 +127,5 @@ CREATE TABLE dbo.Investigations (
     MaterialNumber NVARCHAR(18) NOT NULL,
     SLoc           NVARCHAR(4)  NOT NULL,
     InvestigatedAt DATETIME2    NOT NULL CONSTRAINT DF_Investigation_At DEFAULT SYSUTCDATETIME(),
-    Note           NVARCHAR(400) NULL,
     CONSTRAINT PK_Investigation PRIMARY KEY (MaterialNumber, SLoc)
 );

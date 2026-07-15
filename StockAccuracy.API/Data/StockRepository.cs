@@ -12,7 +12,7 @@ public interface IStockRepository
     Task<IEnumerable<MaterialTrend>>   GetMaterialTrendsAsync(int days = 5);
     Task<IEnumerable<StockComparison>> GetWatchlistComparisonAsync();
     Task<IEnumerable<Investigation>>   GetInvestigationsAsync();
-    Task AddInvestigationAsync(string materialNumber, string sLoc, string? note);
+    Task AddInvestigationAsync(string materialNumber, string sLoc);
     Task RemoveInvestigationAsync(string materialNumber, string sLoc);
 }
 
@@ -114,7 +114,7 @@ public class StockRepository : IStockRepository
         {
             using var conn = new SqlConnection(_connectionString);
             return await conn.QueryAsync<Investigation>(
-                "SELECT MaterialNumber, SLoc, InvestigatedAt, Note FROM dbo.Investigations");
+                "SELECT MaterialNumber, SLoc, InvestigatedAt FROM dbo.Investigations");
         }
         catch (Exception ex)
         {
@@ -123,7 +123,7 @@ public class StockRepository : IStockRepository
         }
     }
 
-    public async Task AddInvestigationAsync(string materialNumber, string sLoc, string? note)
+    public async Task AddInvestigationAsync(string materialNumber, string sLoc)
     {
         try
         {
@@ -133,11 +133,11 @@ public class StockRepository : IStockRepository
                 USING (SELECT @MaterialNumber AS MaterialNumber, @SLoc AS SLoc) AS src
                     ON tgt.MaterialNumber = src.MaterialNumber AND tgt.SLoc = src.SLoc
                 WHEN MATCHED THEN
-                    UPDATE SET InvestigatedAt = SYSUTCDATETIME(), Note = @Note
+                    UPDATE SET InvestigatedAt = SYSUTCDATETIME()
                 WHEN NOT MATCHED THEN
-                    INSERT (MaterialNumber, SLoc, InvestigatedAt, Note)
-                    VALUES (@MaterialNumber, @SLoc, SYSUTCDATETIME(), @Note);",
-                new { MaterialNumber = materialNumber, SLoc = sLoc, Note = note });
+                    INSERT (MaterialNumber, SLoc, InvestigatedAt)
+                    VALUES (@MaterialNumber, @SLoc, SYSUTCDATETIME());",
+                new { MaterialNumber = materialNumber, SLoc = sLoc });
         }
         catch (Exception ex)
         {

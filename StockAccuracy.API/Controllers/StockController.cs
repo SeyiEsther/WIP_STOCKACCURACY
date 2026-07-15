@@ -169,7 +169,7 @@ public class StockController : ControllerBase
 
         try
         {
-            await _repo.AddInvestigationAsync(req.MaterialNumber.Trim(), req.SLoc.Trim(), req.Note);
+            await _repo.AddInvestigationAsync(req.MaterialNumber.Trim(), req.SLoc.Trim());
             return Ok(new { ok = true });
         }
         catch (Exception ex)
