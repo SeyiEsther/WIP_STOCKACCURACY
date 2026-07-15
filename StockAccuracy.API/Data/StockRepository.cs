@@ -70,7 +70,7 @@ public class StockRepository : IStockRepository
                     SUM(CASE
                         WHEN y.Qty IS NOT NULL
                          AND y.Qty > 0
-                         AND ABS((t.Qty - y.Qty) / y.Qty * 100) > 10
+                         AND ABS((t.Qty - y.Qty) / NULLIF(y.Qty, 0) * 100) > 10
                         THEN 1 ELSE 0
                     END) AS Flagged
                 FROM dbo.StockSnapshot t
