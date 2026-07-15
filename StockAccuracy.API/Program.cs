@@ -5,6 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<IStockRepository, StockRepository>();
+builder.Services.AddScoped<IWatchlistRepository, WatchlistRepository>();
 
 // CORS is opt-in: only the origins listed in configuration ("Cors:AllowedOrigins")
 // are allowed. The SPA is served same-origin from wwwroot, so production typically
