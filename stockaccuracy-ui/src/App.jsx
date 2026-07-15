@@ -22,6 +22,20 @@ function normTrend(t) {
   }
 }
 
+// Provisional ABC classification: prefer a real class from the API when present,
+// otherwise derive a deterministic (stable per material) placeholder so the
+// column is populated. Replace with a real value/consumption-based class when a
+// source (e.g. unit price × volume) is wired into vw_StockComparison.
+function abcClassFor(row) {
+  const real = row.abcClass ?? row.AbcClass ?? row.ABCClass
+  if (real) return real
+  const s = String(row.materialNumber ?? '')
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
+  const r = (h % 100) / 100
+  return r < 0.10 ? 'A' : r < 0.30 ? 'B' : 'C'
+}
+
 // ─── data hook ──────────────────────────────────────────────────────────────
 function useStockData(trendDays) {
   const [rows,           setRows]           = useState([])
@@ -179,6 +193,7 @@ export default function App() {
   const [threshold,   setThreshold]   = useState(10)
   const [sortKey,     setSortKey]     = useState('absPct')
   const [sortDir,     setSortDir]     = useState('desc')
+  const [abcFilter,   setAbcFilter]   = useState('ALL')
   const [trendOnly,   setTrendOnly]   = useState(false)
   const [hideAcked,   setHideAcked]   = useState(false)
 
@@ -210,6 +225,7 @@ export default function App() {
       const t = tmap.get(iid(r.materialNumber, r.sLoc))
       return {
         ...r,
+        abcClass:       abcClassFor(r),
         trendDirection: t?.trendDirection ?? null,
         trendDays:      t?.dataPoints ?? 0,
         valueImpact:    r.unitValue != null ? Math.abs(r.delta ?? 0) * r.unitValue : null,
@@ -250,11 +266,12 @@ export default function App() {
       default: break
     }
 
-    if (trendOnly) d = d.filter(r => r.trendDirection === 'UP' || r.trendDirection === 'DOWN')
-    if (hideAcked) d = d.filter(r => !investigated[iid(r.materialNumber, r.sLoc)])
+    if (abcFilter !== 'ALL') d = d.filter(r => r.abcClass === abcFilter)
+    if (trendOnly)           d = d.filter(r => r.trendDirection === 'UP' || r.trendDirection === 'DOWN')
+    if (hideAcked)           d = d.filter(r => !investigated[iid(r.materialNumber, r.sLoc)])
 
     return d
-  }, [enriched, sloc, search, activeCard, filterChip, threshold, trendOnly, hideAcked, investigated])
+  }, [enriched, sloc, search, activeCard, filterChip, threshold, abcFilter, trendOnly, hideAcked, investigated])
 
   // ── sorted rows ───────────────────────────────────────────────────────────
   const sorted = useMemo(() => {
@@ -358,6 +375,8 @@ export default function App() {
             onSlocChange={setSloc}
             threshold={threshold}
             onThresholdChange={setThreshold}
+            abcFilter={abcFilter}
+            onAbcFilterChange={setAbcFilter}
             trendOnly={trendOnly}
             onTrendOnlyChange={setTrendOnly}
             trendDays={trendDays}
@@ -365,7 +384,7 @@ export default function App() {
             hideAcked={hideAcked}
             onHideAckedChange={setHideAcked}
             ackedCount={investigatedCount}
-            hasAbc={false}
+            hasAbc={true}
           />
 
           <StockTable
@@ -377,7 +396,7 @@ export default function App() {
             threshold={threshold}
             investigated={investigated}
             onAck={handleInvestigate}
-            hasAbc={false}
+            hasAbc={true}
           />
         </main>
       )}

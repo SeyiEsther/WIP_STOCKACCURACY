@@ -174,6 +174,12 @@ export default function StockTable({
 }) {
   const cols = buildCols(hasAbc, { showImpact, showTrend, showAck })
 
+  // Floor width so the table never compresses columns into each other on narrow
+  // screens — it scrolls horizontally within its container instead.
+  const DESC_FLOOR = 200
+  const tableMinWidth = cols.reduce(
+    (sum, c) => sum + (typeof c.width === 'number' ? c.width : DESC_FLOOR), 0)
+
   if (loading) {
     return (
       <div style={EMPTY_STYLE}>
@@ -193,7 +199,7 @@ export default function StockTable({
       border: '1px solid var(--border)',
       overflow: 'auto', flex: 1,
     }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+      <table style={{ width: '100%', minWidth: tableMinWidth, borderCollapse: 'collapse', tableLayout: 'fixed' }}>
         <colgroup>
           {cols.map(c => (
             <col key={c.key} style={{ width: c.width === 'auto' ? undefined : c.width }} />
@@ -217,6 +223,7 @@ export default function StockTable({
                     color: 'var(--tx-lo)', letterSpacing: '0.08em', textTransform: 'uppercase',
                     cursor: sk ? 'pointer' : 'default',
                     userSelect: 'none', whiteSpace: 'nowrap',
+                    overflow: 'hidden', textOverflow: 'ellipsis',
                   }}
                 >
                   {c.label}
