@@ -38,8 +38,8 @@ const ABC_DEF = {
 // ─── column definitions ───────────────────────────────────────────────────────
 function buildCols(hasAbc, { showImpact = true, showTrend = true, showAck = true } = {}) {
   const cols = [
-    { key: 'materialNumber', label: 'Material',    align: 'left',   width: 108      },
-    { key: 'materialDesc',   label: 'Description', align: 'left',   width: 'auto'   },
+    { key: 'materialNumber', label: 'Material',    align: 'left',   width: 108 },
+    { key: 'materialDesc',   label: 'Description', align: 'left',   width: 260 },
   ]
   if (hasAbc)
     cols.push({ key: 'abcClass', label: 'Class', align: 'center', width: 48, sortKey: null })
@@ -261,7 +261,10 @@ export default function StockTable({
                 <td style={{ padding: '6px 8px', fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color: 'var(--tx-hi)', whiteSpace: 'nowrap' }}>
                   {r.materialNumber}
                 </td>
-                <td style={{ padding: '6px 8px', color: 'var(--tx-body)', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <td
+                  title={r.materialDesc}
+                  style={{ padding: '6px 8px', color: 'var(--tx-body)', fontSize: 12, maxWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                >
                   {r.materialDesc}
                 </td>
                 {hasAbc && (
