@@ -68,9 +68,9 @@ public class StockRepository : IStockRepository
                     t.SnapshotDate,
                     COUNT(*)  AS TotalTracked,
                     SUM(CASE
-                        WHEN y.Qty IS NOT NULL
-                         AND y.Qty > 0
-                         AND ABS((t.Qty - y.Qty) / NULLIF(y.Qty, 0) * 100) > 10
+                        WHEN y.Quantity IS NOT NULL
+                         AND y.Quantity > 0
+                         AND ABS((t.Quantity - y.Quantity) / NULLIF(y.Quantity, 0) * 100) > 10
                         THEN 1 ELSE 0
                     END) AS Flagged
                 FROM dbo.StockSnapshots t
@@ -114,11 +114,11 @@ public class StockRepository : IStockRepository
         {
             using var conn = new SqlConnection(_connectionString);
             return await conn.QueryAsync<Investigation>(
-                "SELECT MaterialNumber, SLoc, InvestigatedAt, Note FROM dbo.Investigation");
+                "SELECT MaterialNumber, SLoc, InvestigatedAt, Note FROM dbo.Investigations");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to query dbo.Investigation");
+            _logger.LogError(ex, "Failed to query dbo.Investigations");
             throw;
         }
     }
@@ -129,7 +129,7 @@ public class StockRepository : IStockRepository
         {
             using var conn = new SqlConnection(_connectionString);
             await conn.ExecuteAsync(@"
-                MERGE dbo.Investigation AS tgt
+                MERGE dbo.Investigations AS tgt
                 USING (SELECT @MaterialNumber AS MaterialNumber, @SLoc AS SLoc) AS src
                     ON tgt.MaterialNumber = src.MaterialNumber AND tgt.SLoc = src.SLoc
                 WHEN MATCHED THEN
@@ -152,7 +152,7 @@ public class StockRepository : IStockRepository
         {
             using var conn = new SqlConnection(_connectionString);
             await conn.ExecuteAsync(
-                "DELETE FROM dbo.Investigation WHERE MaterialNumber = @MaterialNumber AND SLoc = @SLoc",
+                "DELETE FROM dbo.Investigations WHERE MaterialNumber = @MaterialNumber AND SLoc = @SLoc",
                 new { MaterialNumber = materialNumber, SLoc = sLoc });
         }
         catch (Exception ex)
@@ -184,8 +184,8 @@ public class StockRepository : IStockRepository
                 ),
                 Snaps AS (
                     SELECT
-                        s.MaterialNumber, s.SLoc, s.Qty,
-                        LAG(s.Qty) OVER (
+                        s.MaterialNumber, s.SLoc, s.Quantity,
+                        LAG(s.Quantity) OVER (
                             PARTITION BY s.MaterialNumber, s.SLoc
                             ORDER BY s.SnapshotDate
                         ) AS PrevQty
@@ -194,7 +194,7 @@ public class StockRepository : IStockRepository
                 ),
                 Steps AS (
                     SELECT MaterialNumber, SLoc,
-                        SIGN(Qty - PrevQty) AS Dir
+                        SIGN(Quantity - PrevQty) AS Dir
                     FROM Snaps
                     WHERE PrevQty IS NOT NULL
                 )
