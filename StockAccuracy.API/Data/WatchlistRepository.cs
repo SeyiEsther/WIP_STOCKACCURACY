@@ -23,28 +23,50 @@ public class WatchlistRepository : IWatchlistRepository
         _logger = logger;
     }
 
+    // Aggregate each source table separately before joining, so a material that
+    // exists in multiple storage locations is not double-counted (a direct join
+    // multiplies the stock and made-quantity rows together).
     private const string ProductionSql = @"
-SELECT
-    LTRIM(RTRIM(z.Material)) AS Material,
-    LTRIM(RTRIM(z.MaterialDescription)) AS Description,
-    SUM(TRY_CAST(REPLACE(LTRIM(RTRIM(z.UnrestrU)), ',', '')
-        AS DECIMAL(18,3))) AS InStockNow,
-    ISNULL(SUM(TRY_CAST(LTRIM(RTRIM(p.YieldToConf))
-        AS DECIMAL(18,3))), 0) AS MadeIn24Hours
-FROM dbo.zmm_li009 z
-LEFT JOIN dbo.zpp_conf_reportDataWH24Hour p
-    ON LTRIM(RTRIM(p.Material)) = LTRIM(RTRIM(z.Material))
-    AND p.YieldToConf NOT LIKE '%-%'
-WHERE LTRIM(RTRIM(z.Material)) IN (
-    '433900','433432','433434','434026','433229','432574',
-    '433901','434014','434016','434018','400463','433033',
-    '434013','433433','433435','400477','434021','434027',
-    '400478','400479','432625','433913','433909','433910',
-    '433906','410401','434166','400557','434147','400592',
-    '400593','434150','433230','433231','433746','433744'
+WITH StockByMaterial AS (
+    SELECT
+        LTRIM(RTRIM(Material)) AS Material,
+        MAX(LTRIM(RTRIM(MaterialDescription))) AS Description,
+        SUM(TRY_CAST(REPLACE(LTRIM(RTRIM(UnrestrU)), ',', '') AS DECIMAL(18,3))) AS InStockNow
+    FROM dbo.zmm_li009
+    WHERE LTRIM(RTRIM(Material)) IN (
+        '433900','433432','433434','434026','433229','432574',
+        '433901','434014','434016','434018','400463','433033',
+        '434013','433433','433435','400477','434021','434027',
+        '400478','400479','432625','433913','433909','433910',
+        '433906','410401','434166','400557','434147','400592',
+        '400593','434150','433230','433231','433746','433744'
+    )
+    GROUP BY LTRIM(RTRIM(Material))
+),
+MadeByMaterial AS (
+    SELECT
+        LTRIM(RTRIM(Material)) AS Material,
+        SUM(TRY_CAST(LTRIM(RTRIM(YieldToConf)) AS DECIMAL(18,3))) AS MadeIn24Hours
+    FROM dbo.zpp_conf_reportDataWH24Hour
+    WHERE LTRIM(RTRIM(Material)) IN (
+        '433900','433432','433434','434026','433229','432574',
+        '433901','434014','434016','434018','400463','433033',
+        '434013','433433','433435','400477','434021','434027',
+        '400478','400479','432625','433913','433909','433910',
+        '433906','410401','434166','400557','434147','400592',
+        '400593','434150','433230','433231','433746','433744'
+    )
+    AND YieldToConf NOT LIKE '%-%'
+    GROUP BY LTRIM(RTRIM(Material))
 )
-GROUP BY LTRIM(RTRIM(z.Material)), LTRIM(RTRIM(z.MaterialDescription))
-ORDER BY LTRIM(RTRIM(z.Material));";
+SELECT
+    s.Material,
+    s.Description,
+    s.InStockNow,
+    ISNULL(m.MadeIn24Hours, 0) AS MadeIn24Hours
+FROM StockByMaterial s
+LEFT JOIN MadeByMaterial m ON m.Material = s.Material
+ORDER BY s.Material;";
 
     public async Task<IEnumerable<ProductionStock>> GetProductionWatchAsync()
     {
