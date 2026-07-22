@@ -1,3 +1,10 @@
+// ─── WatchlistRepository.cs — database access for the Watchlist tab ───────────
+// Reads from a separate data-warehouse database (the "DataWarehouseConnection")
+// rather than the main stock database. The big SQL query below (ProductionSql)
+// pulls current stock and last-24-hours production for a fixed list of watched
+// material numbers. See the comment above the query for why each source table is
+// summed on its own before they're joined together.
+
 using Dapper;
 using Microsoft.Data.SqlClient;
 using StockAccuracy.API.Models;

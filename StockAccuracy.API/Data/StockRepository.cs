@@ -1,3 +1,13 @@
+// ─── StockRepository.cs — the code that actually talks to the SQL database ────
+//
+// A "repository" is the single place that runs database queries, so the rest of
+// the app never touches SQL directly. We use Dapper (the QueryAsync<T> calls) to
+// run a query and map each result row straight onto one of our Model classes.
+//
+// The IStockRepository "interface" just below is the contract — the list of
+// methods available — while the StockRepository class is the real implementation.
+// Controllers depend on the interface, which keeps them easy to test with a fake.
+
 using Dapper;
 using Microsoft.Data.SqlClient;
 using StockAccuracy.API.Models;

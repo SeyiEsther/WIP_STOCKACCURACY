@@ -2,6 +2,16 @@
 -- Stock Accuracy Monitor — SQL Server view definitions
 -- Run once against the target database
 -- =====================================================
+--
+-- New to databases? A quick orientation:
+--   • A TABLE physically stores rows of data (like StockSnapshots below).
+--   • A VIEW is a saved SELECT query that you can read from as if it were a
+--     table, but it stores no data of its own — it recalculates from the
+--     underlying tables every time it's read. The API queries these views
+--     (e.g. "SELECT * FROM vw_StockComparison") instead of repeating the logic.
+--   • "CREATE OR ALTER VIEW" means create it, or update it if it already exists,
+--     so this whole script is safe to re-run.
+-- This file sets up the tables and the three views the dashboard depends on.
 
 -- ------------------------------------
 -- Daily snapshot table (populated by

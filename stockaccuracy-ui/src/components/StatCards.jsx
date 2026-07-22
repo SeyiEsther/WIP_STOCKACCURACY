@@ -1,3 +1,9 @@
+// ─── StatCards.jsx — the row of big numbers on the Stock Monitor page ─────────
+// "KPI" = Key Performance Indicator, just business-speak for a headline number.
+// Each cell shows one count (Tracked / Flagged / New / Missing) and doubles as a
+// button: clicking it filters the table below to that category. The `activeCard`
+// prop tells this component which one is currently selected so it can highlight it.
+//
 // KPI Strip — horizontal row of key numbers, each is a filter shortcut
 
 const KPIS = [

@@ -1,3 +1,14 @@
+// ─── StockController.cs — the main API "front desk" for the dashboard ─────────
+//
+// A Controller turns web addresses into method calls. Each method below is
+// marked with an attribute like [HttpGet("summary")], which means: "when a
+// browser requests GET /api/stock/summary, run this method." The class-level
+// [Route("api/[controller]")] sets the "/api/stock" prefix ([controller] becomes
+// the class name minus "Controller"). Every method's pattern is: ask the
+// repository for data, and either return it as JSON (Ok(...)) or, if something
+// throws, hand it to ServerError() so the client gets a safe message and the
+// full details go to the server log.
+
 using CsvHelper;
 using Dapper;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +23,9 @@ namespace StockAccuracy.API.Controllers;
 [Route("api/[controller]")]
 public class StockController : ControllerBase
 {
+    // These four dependencies are supplied automatically by the framework (see
+    // the note on dependency injection in Program.cs). The leading underscore is
+    // just a common C# convention for "this is a private field of the class".
     private readonly IStockRepository  _repo;
     private readonly IConfiguration    _config;
     private readonly IHostEnvironment  _env;

@@ -1,5 +1,11 @@
+// ─── NotificationPanel.jsx — the slide-in list you get from the bell icon ─────
 // Notification centre — slide-in panel showing all flagged items,
 // each dismissible with an "Investigated ✓" timestamp record.
+//
+// It splits the flagged materials into two groups — "Unaddressed" (nobody has
+// looked yet) and "Investigated" (already ticked off, shown with the time) — so
+// the user can work through the outstanding ones. Clicking a material's button
+// calls onInvestigate, which toggles that acknowledgement back in App.jsx.
 
 const iid = (mat, sloc) => `${mat}__${sloc}`
 

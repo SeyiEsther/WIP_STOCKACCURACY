@@ -1,3 +1,10 @@
+// ─── WatchlistPage.jsx — the "Watchlist" tab ──────────────────────────────────
+// A focused view of the specific materials we care most about, showing how much
+// of each is in stock right now versus how much was produced in the last 24
+// hours. Unlike the other pages (whose data comes down from App.jsx), this page
+// fetches its own data from /api/watchlist/production and refreshes it once an
+// hour on a timer.
+
 import { useState, useEffect, useCallback, useRef } from 'react'
 
 const API_URL = '/api/watchlist/production'

@@ -1,3 +1,10 @@
+// ─── FilterBar.jsx — the controls that decide which rows the table shows ──────
+// This is a "controlled" component: it doesn't remember any choices itself. Each
+// current value (search text, selected SLoc, threshold…) is passed in as a prop,
+// and every change is reported straight back to App.jsx through an on… callback.
+// App.jsx owns the state and re-filters the data; this file is just the buttons
+// and inputs. "Chip" = a small pill-shaped toggle button (defined at the bottom).
+
 const STATUS_CHIPS = [
   { key: 'ALL',     label: 'All'     },
   { key: 'FLAGGED', label: 'Flagged' },

@@ -1,3 +1,9 @@
+// ─── WatchlistController.cs — the API endpoint behind the Watchlist tab ───────
+// A small sibling of StockController with a single endpoint: GET
+// /api/watchlist/production, which returns each watchlisted material's current
+// stock and how much was produced in the last 24 hours. Same pattern as before:
+// ask the repository, return JSON, and turn any error into a safe response.
+
 using Microsoft.AspNetCore.Mvc;
 using StockAccuracy.API.Data;
 

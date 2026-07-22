@@ -1,3 +1,9 @@
+// ─── stock.js — the two rules that decide how a row is labelled ──────────────
+//
+// These helpers are kept in one place so the table, the charts and the
+// notification panel all classify a row the exact same way. If the definition of
+// "flagged" ever needs to change, it changes here once and everywhere follows.
+
 // ─── shared stock-status logic ──────────────────────────────────────────────
 import { iid } from './normalize.js'
 

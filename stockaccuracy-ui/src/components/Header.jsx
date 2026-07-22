@@ -1,5 +1,12 @@
+// ─── Header.jsx — the fixed bar across the top of every page ──────────────────
+// Shows the app name, a live connection status dot, a ticking clock, the
+// notification bell (with a count of unaddressed flags), and the Refresh / CSV
+// export buttons. It only displays things and reports clicks back up to App.jsx
+// via the on… callbacks; it holds no data of its own except the clock.
+
 import { useState, useEffect } from 'react'
 
+// A tiny hook that re-renders once a second so the on-screen clock stays current.
 function useClock() {
   const [now, setNow] = useState(new Date())
   useEffect(() => {

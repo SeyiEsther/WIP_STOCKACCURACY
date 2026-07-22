@@ -1,6 +1,20 @@
+// ─── StockTable.jsx — the main data grid on the Stock Monitor page ────────────
+// Renders the already-filtered, already-sorted rows handed down from App.jsx as
+// an HTML table. Its jobs: format numbers nicely, colour each row by status
+// (up/down/investigated), and let the user click a column header to sort or the
+// ✓ button to mark a material investigated. Sorting and acknowledging are handled
+// up in App.jsx — this component just reports the clicks via onSort / onAck.
+//
+// The file is built from small helper components (badges, cells, the sort arrow)
+// defined first, then assembled into the full table in StockTable() lower down.
+
 import { deriveStatus } from '../lib/stock.js'
 
 // ─── formatters ─────────────────────────────────────────────────────────────
+// Turn raw numbers into human-readable text: thousands separators for
+// quantities, a leading +/- and "%" for percentages, and "£" for money.
+// They all return an em dash ("—") for missing values so the table never shows
+// a blank or "undefined".
 const fmtQty = (n) => {
   if (n == null) return '—'
   return Number(n).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 3 })

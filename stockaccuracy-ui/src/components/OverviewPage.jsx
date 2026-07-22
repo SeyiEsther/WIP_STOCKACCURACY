@@ -1,3 +1,10 @@
+// ─── OverviewPage.jsx — the "Overview" tab: a dashboard of summary charts ─────
+// The at-a-glance page: four headline stat cards, three donut charts (overall
+// health, flagged up-vs-down, flagged per storage location), a 14-day bar chart,
+// a "top 10 most volatile" chart, and a table of extreme movers (>500%). It's
+// given the full row set via props and derives every chart from it with useMemo
+// (see the note on that hook further down). Purely presentational — no fetching.
+
 import { useMemo } from 'react'
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
@@ -404,6 +411,10 @@ function ExtremeMoversTable({ rows }) {
 // ─── Main OverviewPage ────────────────────────────────────────────────────────
 export default function OverviewPage({ rows, summary, trend, loading, threshold = 10 }) {
   // ── Row 1: counts ────────────────────────────────────────────────────────
+  // useMemo(fn, [deps]) runs fn and caches its result, only recomputing when one
+  // of the values in [deps] changes. We use it here (and below) so these counts
+  // aren't recalculated on every single re-render — only when rows or threshold
+  // actually change.
   const totalTracked = summary?.totalTracked ?? summary?.TotalTracked ?? rows.length
   const flaggedToday = useMemo(
     () => rows.filter(r => Math.abs(r.pctChange) > threshold).length,

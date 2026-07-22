@@ -1,5 +1,7 @@
 namespace StockAccuracy.API.Models;
 
+// The single-row totals shown in the KPI cards at the top of the dashboard:
+// how many materials are tracked, flagged, new, or missing today.
 public class StockSummary
 {
     public int TotalTracked { get; set; }

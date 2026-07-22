@@ -1,3 +1,29 @@
+// ─── App.jsx — the top-level component that ties the whole dashboard together ──
+//
+// What this file does, in plain English:
+//   1. Fetches the stock data from our backend API (see useStockData below).
+//   2. Holds all the "what is the user currently looking at" state — which tab,
+//      which filters, the search box, the sort order, etc.
+//   3. Runs that raw data through filtering/sorting and hands the result to the
+//      presentational components (the table, the charts, the header…).
+//
+// A quick glossary of the domain terms you'll see throughout the code:
+//   • Material  – a part/product, identified by a number like "433901".
+//   • SLoc      – "Storage Location": a bin/area in the warehouse where stock sits.
+//   • Snapshot  – a once-a-day recording of how much of each material is in stock.
+//   • Delta     – today's quantity minus yesterday's (how much it moved).
+//   • % Change  – that movement as a percentage of yesterday's quantity.
+//   • Flagged   – a material whose % change is bigger than the alert threshold,
+//                 i.e. it moved more than we'd expect and may be worth checking.
+//   • Investigated – a human has looked at a flagged material and ticked it off.
+//   • ABC class – a rough importance grade (A = most important … C = least).
+//
+// React note for newcomers: a "component" is just a function that returns the
+// HTML-like markup (JSX) to display. "Hooks" are the useX(...) functions — they
+// let a component remember values (useState) and re-run logic when inputs change
+// (useMemo / useEffect). When a value a component depends on changes, React
+// automatically re-draws that part of the screen.
+
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import Header               from './components/Header.jsx'
 import StatCards            from './components/StatCards.jsx'
@@ -37,6 +63,11 @@ function abcClassFor(row) {
 }
 
 // ─── data hook ──────────────────────────────────────────────────────────────
+// A custom hook (any function whose name starts with "use") that owns everything
+// about loading the dashboard data: the rows, loading/error flags, and a refresh
+// function. It calls the four API endpoints at once, then stores the results so
+// the rest of the app can read them. Keeping this here means App() stays focused
+// on layout rather than network plumbing.
 function useStockData(trendDays) {
   const [rows,           setRows]           = useState([])
   const [summary,        setSummary]        = useState(null)

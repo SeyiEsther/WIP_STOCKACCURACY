@@ -1,3 +1,9 @@
+// ─── TrendChart.jsx — the 7-day "tracked vs flagged" area chart ───────────────
+// Plots two lines over the last few daily snapshots: how many materials we're
+// tracking, and how many were flagged each day. It reads its data from the
+// `data` prop; it does no fetching itself. We use the "recharts" library, which
+// gives us ready-made <AreaChart>, <XAxis>, <Tooltip>, etc. building blocks.
+
 import { useMemo } from 'react'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,

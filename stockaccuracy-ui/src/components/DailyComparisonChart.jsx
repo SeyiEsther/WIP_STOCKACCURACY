@@ -1,3 +1,10 @@
+// ─── DailyComparisonChart.jsx — today's biggest movers, plotted point by point ─
+// Takes the top ~25 materials by size of % change and draws each as a coloured
+// dot (green = up, red = down). Dashed amber lines mark the +/- alert threshold.
+// A handful of materials can swing by thousands of percent (e.g. stock went from
+// 1 to 500); those would flatten the chart, so anything beyond OUTLIER_THRESHOLD
+// is pulled out and listed underneath instead of squashing the rest.
+
 import { useMemo } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
