@@ -34,6 +34,7 @@ import StockTable           from './components/StockTable.jsx'
 import NotificationPanel    from './components/NotificationPanel.jsx'
 import OverviewPage         from './components/OverviewPage.jsx'
 import WatchlistPage        from './components/WatchlistPage.jsx'
+import PaintedWatchlistPage from './components/PaintedWatchlistPage.jsx'
 import { norm, iid }        from './lib/normalize.js'
 import { isFlagged }        from './lib/stock.js'
 
@@ -166,6 +167,7 @@ function NavBar({ page, onPageChange }) {
     { key: 'overview',  label: 'Overview' },
     { key: 'monitor',   label: 'Stock Monitor' },
     { key: 'watchlist', label: 'Watchlist' },
+    { key: 'painted',   label: 'Painted Parts' },
   ]
   return (
     <div style={{
@@ -387,6 +389,8 @@ export default function App() {
         />
       ) : page === 'watchlist' ? (
         <WatchlistPage />
+      ) : page === 'painted' ? (
+        <PaintedWatchlistPage />
       ) : (
         <main style={{ flex: 1, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <StatCards summary={liveSummary} activeCard={activeCard} onCardClick={handleCardClick} />
