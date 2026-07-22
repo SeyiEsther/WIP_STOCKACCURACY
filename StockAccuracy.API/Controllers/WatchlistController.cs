@@ -1,8 +1,10 @@
-// ─── WatchlistController.cs — the API endpoint behind the Watchlist tab ───────
-// A small sibling of StockController with a single endpoint: GET
-// /api/watchlist/production, which returns each watchlisted material's current
-// stock and how much was produced in the last 24 hours. Same pattern as before:
-// ask the repository, return JSON, and turn any error into a safe response.
+// ─── WatchlistController.cs — the API endpoints behind the watchlist tabs ─────
+// A small sibling of StockController. Same pattern throughout: ask the
+// repository, return JSON, and turn any error into a safe response. It serves:
+//   • GET /api/watchlist/production — watched materials' current stock and the
+//     quantity produced in the last 24 hours.
+//   • GET /api/watchlist/painted    — painted (RAL-finished) materials' current
+//     stock quantity.
 
 using Microsoft.AspNetCore.Mvc;
 using StockAccuracy.API.Data;
@@ -37,6 +39,26 @@ public class WatchlistController : ControllerBase
         catch (Exception ex)
         {
             _log.LogError(ex, "GET watchlist/production failed");
+            object payload = _env.IsDevelopment()
+                ? new { error = ex.Message, type = ex.GetType().Name }
+                : new { error = "Internal server error" };
+            return StatusCode(500, payload);
+        }
+    }
+
+    // Painted (RAL-finished) materials with their current stock quantity,
+    // sourced from CSMDATAWH.
+    [HttpGet("painted")]
+    public async Task<IActionResult> GetPainted()
+    {
+        try
+        {
+            var data = await _repo.GetPaintedWatchAsync();
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "GET watchlist/painted failed");
             object payload = _env.IsDevelopment()
                 ? new { error = ex.Message, type = ex.GetType().Name }
                 : new { error = "Internal server error" };

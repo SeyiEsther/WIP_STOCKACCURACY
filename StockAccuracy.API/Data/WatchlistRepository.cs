@@ -14,6 +14,7 @@ namespace StockAccuracy.API.Data;
 public interface IWatchlistRepository
 {
     Task<IEnumerable<ProductionStock>> GetProductionWatchAsync();
+    Task<IEnumerable<PaintedStock>>    GetPaintedWatchAsync();
 }
 
 public class WatchlistRepository : IWatchlistRepository
@@ -85,6 +86,40 @@ ORDER BY s.Material;";
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to query production watchlist from CSMDATAWH");
+            throw;
+        }
+    }
+
+    // "Painted parts" are identified by a RAL colour code in the description
+    // (e.g. "…RAL9005", RAL 9005 = jet black). Change PaintedFilter to narrow the
+    // match — e.g. '%RAL9005%' for a single colour — or replace the WHERE clause
+    // with a fixed "Material IN (…)" list like ProductionSql above if you'd rather
+    // curate the set by material number.
+    private const string PaintedFilter = "%RAL%";
+
+    // Sum unrestricted stock per material (a material can sit in several storage
+    // locations; grouping avoids listing it more than once). Qty mirrors the
+    // "In Stock Now" figure used by the production watchlist.
+    private const string PaintedSql = @"
+SELECT
+    LTRIM(RTRIM(Material)) AS Material,
+    MAX(LTRIM(RTRIM(MaterialDescription))) AS Description,
+    SUM(TRY_CAST(REPLACE(LTRIM(RTRIM(UnrestrU)), ',', '') AS DECIMAL(18,3))) AS Qty
+FROM dbo.zmm_li009
+WHERE LTRIM(RTRIM(MaterialDescription)) LIKE @Filter
+GROUP BY LTRIM(RTRIM(Material))
+ORDER BY LTRIM(RTRIM(Material));";
+
+    public async Task<IEnumerable<PaintedStock>> GetPaintedWatchAsync()
+    {
+        try
+        {
+            using var conn = new SqlConnection(_connectionString);
+            return await conn.QueryAsync<PaintedStock>(PaintedSql, new { Filter = PaintedFilter });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to query painted watchlist from CSMDATAWH");
             throw;
         }
     }
