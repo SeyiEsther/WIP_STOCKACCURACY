@@ -94,23 +94,20 @@ ORDER BY s.Material;";
         }
     }
 
-    // "Painted parts" are identified by a RAL colour code in the description
-    // (e.g. "…RAL9005", RAL 9005 = jet black). Change PaintedFilter to narrow the
-    // match — e.g. '%RAL9005%' for a single colour — or replace the WHERE clause
-    // with a fixed "Material IN (…)" list like ProductionSql above if you'd rather
-    // curate the set by material number.
-    private const string PaintedFilter = "%RAL%";
-
-    // Sum unrestricted stock per material (a material can sit in several storage
-    // locations; grouping avoids listing it more than once). Qty mirrors the
-    // "In Stock Now" figure used by the production watchlist.
+    // "Painted parts" watchlist — restricted to a fixed set of painted material
+    // numbers (same curation style as ProductionSql). Sum unrestricted stock per
+    // material (a material can sit in several storage locations; grouping avoids
+    // listing it more than once). Qty mirrors the production "In Stock Now".
+    // Materials with no stock rows simply don't appear.
     private const string PaintedSql = @"
 SELECT
     LTRIM(RTRIM(Material)) AS Material,
     MAX(LTRIM(RTRIM(MaterialDescription))) AS Description,
     SUM(TRY_CAST(REPLACE(LTRIM(RTRIM(UnrestrU)), ',', '') AS DECIMAL(18,3))) AS Qty
 FROM dbo.zmm_li009
-WHERE LTRIM(RTRIM(MaterialDescription)) LIKE @Filter
+WHERE LTRIM(RTRIM(Material)) IN (
+    '433900','433432','433434','434026','433229','432574'
+)
 GROUP BY LTRIM(RTRIM(Material))
 ORDER BY LTRIM(RTRIM(Material));";
 
@@ -119,7 +116,7 @@ ORDER BY LTRIM(RTRIM(Material));";
         try
         {
             using var conn = new SqlConnection(_connectionString);
-            return await conn.QueryAsync<PaintedStock>(PaintedSql, new { Filter = PaintedFilter });
+            return await conn.QueryAsync<PaintedStock>(PaintedSql);
         }
         catch (Exception ex)
         {
