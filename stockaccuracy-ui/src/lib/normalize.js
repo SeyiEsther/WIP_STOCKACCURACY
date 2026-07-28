@@ -23,6 +23,7 @@ export function norm(r) {
     todayDate:      r.todayDate      ?? r.TodayDate,
     yesterdayDate:  r.yesterdayDate  ?? r.YesterdayDate,
     unitValue:      r.unitValue      ?? r.UnitValue ?? null,
+    abcClass:       r.abcClass       ?? r.aBCClass ?? r.ABCClass ?? r.AbcClass ?? null,
   }
 }
 

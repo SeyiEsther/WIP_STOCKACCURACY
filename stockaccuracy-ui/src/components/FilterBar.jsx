@@ -28,6 +28,7 @@ const ABC_CHIPS = [
   { key: 'A',   label: 'A',  color: 'var(--amber)', bg: 'var(--amber-bg)', border: 'var(--amber-border)' },
   { key: 'B',   label: 'B',  color: 'var(--blue)',  bg: 'var(--blue-bg)',  border: 'var(--blue-border)'  },
   { key: 'C',   label: 'C',  color: 'var(--grey)',  bg: 'var(--grey-bg)',  border: 'var(--grey-border)'  },
+  { key: 'NONE', label: '—', color: 'var(--tx-lo)', bg: 'var(--bg-inset)', border: 'var(--border-sub)'  },
 ]
 
 export default function FilterBar({

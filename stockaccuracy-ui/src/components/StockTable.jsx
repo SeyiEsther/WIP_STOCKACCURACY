@@ -81,8 +81,11 @@ function SortIcon({ active, dir }) {
 }
 
 function AbcBadge({ cls }) {
-  if (!cls) return null
   const d = ABC_DEF[cls]
+  // Unclassified (null) or an unexpected value renders as a dash — never a badge.
+  if (!cls || !d) {
+    return <span style={{ color: 'var(--tx-faint)', fontFamily: 'var(--font-mono)', fontSize: 10 }}>—</span>
+  }
   return (
     <span style={{
       fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700,

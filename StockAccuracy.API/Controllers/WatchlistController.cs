@@ -65,4 +65,24 @@ public class WatchlistController : ControllerBase
             return StatusCode(500, payload);
         }
     }
+
+    // Latest snapshot of prototype (SOFPRO/SOFCSM) order lines from the
+    // StockAccuracy database. Not aggregated — one row per order line.
+    [HttpGet("prototype")]
+    public async Task<IActionResult> GetPrototype()
+    {
+        try
+        {
+            var data = await _repo.GetPrototypePartsAsync();
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "GET watchlist/prototype failed");
+            object payload = _env.IsDevelopment()
+                ? new { error = ex.Message, type = ex.GetType().Name }
+                : new { error = "Internal server error" };
+            return StatusCode(500, payload);
+        }
+    }
 }

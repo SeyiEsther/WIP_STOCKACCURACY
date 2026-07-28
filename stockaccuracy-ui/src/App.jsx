@@ -35,6 +35,7 @@ import NotificationPanel    from './components/NotificationPanel.jsx'
 import OverviewPage         from './components/OverviewPage.jsx'
 import WatchlistPage        from './components/WatchlistPage.jsx'
 import PaintedWatchlistPage from './components/PaintedWatchlistPage.jsx'
+import PrototypeWatchlistPage from './components/PrototypeWatchlistPage.jsx'
 import { norm, iid }        from './lib/normalize.js'
 import { isFlagged }        from './lib/stock.js'
 
@@ -49,18 +50,9 @@ function normTrend(t) {
   }
 }
 
-// Provisional ABC classification: prefer a real class from the API when present,
-// otherwise derive a deterministic (stable per material) placeholder so the
-// column is populated. Replace with a real value/consumption-based class when a
-// source (e.g. unit price × volume) is wired into vw_StockComparison.
+// Real ABC classification from the API only — null when unclassified.
 function abcClassFor(row) {
-  const real = row.abcClass ?? row.AbcClass ?? row.ABCClass
-  if (real) return real
-  const s = String(row.materialNumber ?? '')
-  let h = 0
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
-  const r = (h % 100) / 100
-  return r < 0.10 ? 'A' : r < 0.30 ? 'B' : 'C'
+  return row.abcClass ?? row.AbcClass ?? row.ABCClass ?? null
 }
 
 // ─── data hook ──────────────────────────────────────────────────────────────
@@ -168,6 +160,7 @@ function NavBar({ page, onPageChange }) {
     { key: 'monitor',   label: 'Stock Monitor' },
     { key: 'watchlist', label: 'Watchlist' },
     { key: 'painted',   label: 'Painted Parts' },
+    { key: 'prototype', label: 'Prototype Parts' },
   ]
   return (
     <div style={{
@@ -299,7 +292,8 @@ export default function App() {
       default: break
     }
 
-    if (abcFilter !== 'ALL') d = d.filter(r => r.abcClass === abcFilter)
+    if (abcFilter === 'NONE')     d = d.filter(r => r.abcClass == null)
+    else if (abcFilter !== 'ALL') d = d.filter(r => r.abcClass === abcFilter)
     if (trendOnly)           d = d.filter(r => r.trendDirection === 'UP' || r.trendDirection === 'DOWN')
     if (hideAcked)           d = d.filter(r => !investigated[iid(r.materialNumber, r.sLoc)])
 
@@ -391,6 +385,8 @@ export default function App() {
         <WatchlistPage />
       ) : page === 'painted' ? (
         <PaintedWatchlistPage />
+      ) : page === 'prototype' ? (
+        <PrototypeWatchlistPage />
       ) : (
         <main style={{ flex: 1, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <StatCards summary={liveSummary} activeCard={activeCard} onCardClick={handleCardClick} />

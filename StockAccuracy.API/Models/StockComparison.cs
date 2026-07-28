@@ -18,6 +18,10 @@ public class StockComparison
     public string  Status         { get; set; } = string.Empty;
     public string  BaseUnit       { get; set; } = string.Empty;
     public string? MRPController  { get; set; }
+
+    /// <summary>Real ABC classification from vw_StockComparison ('A','B','C', or null).</summary>
+    public string? ABCClass       { get; set; }
+
     public DateTime TodayDate     { get; set; }
     public DateTime YesterdayDate { get; set; }
 

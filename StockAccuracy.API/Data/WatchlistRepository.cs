@@ -13,21 +13,25 @@ namespace StockAccuracy.API.Data;
 
 public interface IWatchlistRepository
 {
-    Task<IEnumerable<ProductionStock>> GetProductionWatchAsync();
-    Task<IEnumerable<PaintedStock>>    GetPaintedWatchAsync();
+    Task<IEnumerable<ProductionStock>>    GetProductionWatchAsync();
+    Task<IEnumerable<PaintedStock>>       GetPaintedWatchAsync();
+    Task<IEnumerable<PrototypeStockLine>> GetPrototypePartsAsync();
 }
 
 public class WatchlistRepository : IWatchlistRepository
 {
-    private readonly string _connectionString;
+    private readonly string _connectionString;       // DataWarehouseConnection (CSMDATAWH) — production + painted
+    private readonly string _stockConnectionString;  // StockDb (StockAccuracy) — prototype
     private readonly ILogger<WatchlistRepository> _logger;
 
     public WatchlistRepository(IConfiguration config, ILogger<WatchlistRepository> logger)
     {
-        // Read the SQL-auth connection string straight from configuration and open
-        // a raw SqlConnection with it (below) — no Entity Framework, no Windows Auth.
+        // Read the connection strings straight from configuration and open raw
+        // SqlConnections with them (below) — no Entity Framework.
         _connectionString = config.GetConnectionString("DataWarehouseConnection")
             ?? throw new InvalidOperationException("Connection string 'DataWarehouseConnection' is not configured.");
+        _stockConnectionString = config.GetConnectionString("StockDb")
+            ?? throw new InvalidOperationException("Connection string 'StockDb' is not configured.");
         _logger = logger;
     }
 
@@ -120,6 +124,28 @@ ORDER BY LTRIM(RTRIM(Material));";
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to query painted watchlist from CSMDATAWH");
+            throw;
+        }
+    }
+
+    // Latest snapshot of prototype (SOFPRO/SOFCSM) order lines from the
+    // StockAccuracy database. Not aggregated — one row per order line.
+    private const string PrototypeSql = @"
+SELECT SLoc, MaterialNumber, MaterialDesc, Quantity, SDDocument, ABCClass
+FROM PrototypePartsDaily
+WHERE SnapshotDate = (SELECT MAX(SnapshotDate) FROM PrototypePartsDaily)
+ORDER BY MaterialNumber, SDDocument;";
+
+    public async Task<IEnumerable<PrototypeStockLine>> GetPrototypePartsAsync()
+    {
+        try
+        {
+            using var conn = new SqlConnection(_stockConnectionString);
+            return await conn.QueryAsync<PrototypeStockLine>(PrototypeSql);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to query prototype parts from StockAccuracy");
             throw;
         }
     }
