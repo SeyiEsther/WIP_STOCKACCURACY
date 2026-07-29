@@ -73,10 +73,8 @@ function ColoredDot(props) {
 
 export default function DailyComparisonChart({ data, threshold = 10 }) {
   const { chartData, outliers } = useMemo(() => {
-    const all = [...(data || [])]
+    const mapped = [...(data || [])]
       .filter(r => r.status !== 'MISSING')
-      .sort((a, b) => Math.abs(b.pctChange) - Math.abs(a.pctChange))
-      .slice(0, 25)
       .map(r => ({
         label:          truncate(r.materialNumber, 10),
         materialNumber: r.materialNumber,
@@ -87,9 +85,14 @@ export default function DailyComparisonChart({ data, threshold = 10 }) {
         flagged:        Math.abs(r.pctChange ?? 0) > threshold,
       }))
 
+    const bySize = (a, b) => Math.abs(b.pctChange) - Math.abs(a.pctChange)
+
+    // Split into plottable vs extreme FIRST, then take the top movers of each.
+    // (Taking the top 25 up front and then excluding outliers can empty the
+    //  chart when the biggest movers are all >500%.)
     return {
-      chartData: all.filter(r => Math.abs(r.pctChange) <= OUTLIER_THRESHOLD),
-      outliers:  all.filter(r => Math.abs(r.pctChange)  > OUTLIER_THRESHOLD),
+      chartData: mapped.filter(r => Math.abs(r.pctChange) <= OUTLIER_THRESHOLD).sort(bySize).slice(0, 25),
+      outliers:  mapped.filter(r => Math.abs(r.pctChange)  > OUTLIER_THRESHOLD).sort(bySize).slice(0, 25),
     }
   }, [data, threshold])
 
