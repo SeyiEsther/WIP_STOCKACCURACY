@@ -5,13 +5,56 @@
 // 1 to 500); those would flatten the chart, so anything beyond OUTLIER_THRESHOLD
 // is pulled out and listed underneath instead of squashing the rest.
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ReferenceLine, ResponsiveContainer,
 } from 'recharts'
 
-const OUTLIER_THRESHOLD = 500   // % — excluded from chart, shown in list below
+const OUTLIER_THRESHOLD = 500   // % — extreme movers kept out of the plot so they don't flatten it
+
+// Filter options shown above the chart.
+const ABC_OPTS = [
+  { key: 'ALL',  label: 'All' },
+  { key: 'A',    label: 'A' },
+  { key: 'B',    label: 'B' },
+  { key: 'C',    label: 'C' },
+  { key: 'NONE', label: '—' },   // unclassified
+]
+const DIR_OPTS = [
+  { key: 'ALL',  label: 'All' },
+  { key: 'UP',   label: '▲ Up' },
+  { key: 'DOWN', label: '▼ Down' },
+]
+
+function ChipRow({ label, opts, value, onChange }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--tx-faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        {label}
+      </span>
+      {opts.map(o => {
+        const active = value === o.key
+        return (
+          <button
+            key={o.key}
+            onClick={() => onChange(o.key)}
+            style={{
+              padding: '2px 8px',
+              fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: active ? 700 : 400,
+              background: active ? 'var(--blue-bg)' : 'transparent',
+              border: active ? '1px solid var(--blue-border)' : '1px solid var(--border)',
+              color: active ? 'var(--blue)' : 'var(--tx-lo)',
+              borderRadius: 20, cursor: 'pointer', transition: 'all 0.1s',
+            }}
+          >
+            {o.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
 const AXIS_LBL_STYLE = {
   fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono',
@@ -72,9 +115,28 @@ function ColoredDot(props) {
 }
 
 export default function DailyComparisonChart({ data, threshold = 10 }) {
-  const { chartData, outliers } = useMemo(() => {
-    const mapped = [...(data || [])]
+  const [abcFilter, setAbcFilter] = useState('ALL')
+  const [dirFilter, setDirFilter] = useState('ALL')
+
+  const chartData = useMemo(() => {
+    const passAbc = (r) =>
+      abcFilter === 'ALL'    ? true
+      : abcFilter === 'NONE' ? (r.abcClass == null)
+      :                        (r.abcClass === abcFilter)
+    const passDir = (r) =>
+      dirFilter === 'ALL'   ? true
+      : dirFilter === 'UP'  ? ((r.delta ?? 0) > 0)
+      :                       ((r.delta ?? 0) < 0)
+
+    // Extreme movers (>500%) are still kept out of the plot so a single huge
+    // spike doesn't flatten everything — they're just no longer listed.
+    return [...(data || [])]
       .filter(r => r.status !== 'MISSING')
+      .filter(passAbc)
+      .filter(passDir)
+      .filter(r => Math.abs(r.pctChange ?? 0) <= OUTLIER_THRESHOLD)
+      .sort((a, b) => Math.abs(b.pctChange) - Math.abs(a.pctChange))
+      .slice(0, 25)
       .map(r => ({
         label:          truncate(r.materialNumber, 10),
         materialNumber: r.materialNumber,
@@ -82,19 +144,8 @@ export default function DailyComparisonChart({ data, threshold = 10 }) {
         pctChange:      parseFloat((r.pctChange ?? 0).toFixed(2)),
         yesterday:      r.qtyYesterday,
         today:          r.qtyToday,
-        flagged:        Math.abs(r.pctChange ?? 0) > threshold,
       }))
-
-    const bySize = (a, b) => Math.abs(b.pctChange) - Math.abs(a.pctChange)
-
-    // Split into plottable vs extreme FIRST, then take the top movers of each.
-    // (Taking the top 25 up front and then excluding outliers can empty the
-    //  chart when the biggest movers are all >500%.)
-    return {
-      chartData: mapped.filter(r => Math.abs(r.pctChange) <= OUTLIER_THRESHOLD).sort(bySize).slice(0, 25),
-      outliers:  mapped.filter(r => Math.abs(r.pctChange)  > OUTLIER_THRESHOLD).sort(bySize).slice(0, 25),
-    }
-  }, [data, threshold])
+  }, [data, abcFilter, dirFilter])
 
   return (
     <div style={{
@@ -103,12 +154,16 @@ export default function DailyComparisonChart({ data, threshold = 10 }) {
       padding: '16px 20px',
       display: 'flex', flexDirection: 'column',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <ChartLabel style={{ marginBottom: 0 }}>Today vs Yesterday — % Change (top movers, outliers &gt;{OUTLIER_THRESHOLD}% excluded)</ChartLabel>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
+        <ChartLabel style={{ marginBottom: 0 }}>Today vs Yesterday — % Change (top movers, &gt;{OUTLIER_THRESHOLD}% excluded)</ChartLabel>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+          <ChipRow label="Class" opts={ABC_OPTS} value={abcFilter} onChange={setAbcFilter} />
+          <ChipRow label="Dir"   opts={DIR_OPTS} value={dirFilter} onChange={setDirFilter} />
+        </div>
       </div>
 
       {chartData.length === 0 ? (
-        <Empty>No comparison data available</Empty>
+        <Empty>No materials match the current filters</Empty>
       ) : (
         <ResponsiveContainer width="100%" height={260}>
           <LineChart
@@ -153,42 +208,6 @@ export default function DailyComparisonChart({ data, threshold = 10 }) {
             />
           </LineChart>
         </ResponsiveContainer>
-      )}
-
-      {/* Outlier list */}
-      {outliers.length > 0 && (
-        <div style={{
-          marginTop: 10,
-          paddingTop: 10,
-          borderTop: '1px solid var(--border)',
-        }}>
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700,
-            color: 'var(--tx-faint)', letterSpacing: '0.09em', textTransform: 'uppercase',
-            marginBottom: 6,
-          }}>
-            Extreme outliers — excluded from chart (&gt;{OUTLIER_THRESHOLD}%)
-          </div>
-          {outliers.map(r => (
-            <div key={r.materialNumber} style={{
-              display: 'flex', alignItems: 'baseline', gap: 8,
-              fontFamily: 'var(--font-mono)', fontSize: 11,
-              padding: '2px 0',
-              borderBottom: '1px solid var(--border)',
-            }}>
-              <span style={{ fontWeight: 700, color: 'var(--tx-hi)', flexShrink: 0 }}>{r.materialNumber}</span>
-              <span style={{ color: 'var(--tx-lo)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                {r.desc}
-              </span>
-              <span style={{
-                fontWeight: 700, flexShrink: 0,
-                color: r.pctChange >= 0 ? 'var(--green)' : 'var(--red)',
-              }}>
-                {r.pctChange > 0 ? '+' : ''}{r.pctChange.toFixed(0)}%
-              </span>
-            </div>
-          ))}
-        </div>
       )}
     </div>
   )

@@ -20,6 +20,7 @@ public interface IStockRepository
     Task<StockSummary>                 GetStockSummaryAsync();
     Task<IEnumerable<StockTrend>>      GetStockTrendAsync();
     Task<IEnumerable<MaterialTrend>>   GetMaterialTrendsAsync(int days = 5);
+    Task<IEnumerable<MaterialHistoryPoint>> GetMaterialHistoryAsync(string material, int days = 7);
     Task<IEnumerable<StockComparison>> GetWatchlistComparisonAsync();
     Task<IEnumerable<Investigation>>   GetInvestigationsAsync();
     Task AddInvestigationAsync(string materialNumber, string sLoc);
@@ -230,6 +231,39 @@ public class StockRepository : IStockRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to query material trends (days={Days})", days);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Total quantity per snapshot day for a single material (summed across all
+    /// storage locations) over the last <paramref name="days"/> snapshot days.
+    /// </summary>
+    public async Task<IEnumerable<MaterialHistoryPoint>> GetMaterialHistoryAsync(string material, int days = 7)
+    {
+        if (days < 2)  days = 2;
+        if (days > 60) days = 60;
+
+        try
+        {
+            using var conn = new SqlConnection(_connectionString);
+            return await conn.QueryAsync<MaterialHistoryPoint>(@"
+                WITH RecentDates AS (
+                    SELECT TOP (@Days) SnapshotDate
+                    FROM (SELECT DISTINCT SnapshotDate FROM dbo.StockSnapshots) d
+                    ORDER BY SnapshotDate DESC
+                )
+                SELECT s.SnapshotDate, SUM(s.Quantity) AS Quantity
+                FROM dbo.StockSnapshots s
+                INNER JOIN RecentDates rd ON rd.SnapshotDate = s.SnapshotDate
+                WHERE LTRIM(RTRIM(s.MaterialNumber)) = @Material
+                GROUP BY s.SnapshotDate
+                ORDER BY s.SnapshotDate ASC
+            ", new { Days = days, Material = (material ?? string.Empty).Trim() });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to query material history (material={Material}, days={Days})", material, days);
             throw;
         }
     }

@@ -392,7 +392,7 @@ export default function App() {
           <StatCards summary={liveSummary} activeCard={activeCard} onCardClick={handleCardClick} />
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            <TrendChart data={trend} />
+            <TrendChart data={trend} materials={enriched} />
             <DailyComparisonChart data={enriched} threshold={threshold} />
           </div>
 

@@ -147,6 +147,23 @@ public class StockController : ControllerBase
         }
     }
 
+    // Per-material daily quantity over the last N snapshot days (for the trend chart).
+    [HttpGet("material-history")]
+    public async Task<IActionResult> GetMaterialHistory([FromQuery] string material, [FromQuery] int days = 7)
+    {
+        if (string.IsNullOrWhiteSpace(material))
+            return BadRequest(new { error = "material is required." });
+        try
+        {
+            var data = await _repo.GetMaterialHistoryAsync(material, days);
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            return ServerError(ex, "GET material-history failed");
+        }
+    }
+
     [HttpGet("watchlist")]
     public async Task<IActionResult> GetWatchlist()
     {
