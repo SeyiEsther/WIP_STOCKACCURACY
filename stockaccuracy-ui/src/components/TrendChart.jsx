@@ -1,19 +1,21 @@
-// ─── TrendChart.jsx — the 7-day trend area chart ─────────────────────────────
+// ─── TrendChart.jsx — the 7-day trend chart ──────────────────────────────────
 // Two modes:
-//   • Aggregate (default): tracked vs flagged materials per day, from the `data`
-//     prop (fetched up in App.jsx, no fetching here).
-//   • Single material: pick a material number and it fetches that material's
-//     total quantity per day from /api/stock/material-history and plots it.
-// Switch between them with the material picker in the header.
+//   • Aggregate (default, no materials picked): tracked vs flagged materials per
+//     day, from the `data` prop (fetched up in App.jsx, no fetching here).
+//   • Material compare: pick one or more material numbers and each one's total
+//     quantity per day is fetched from /api/stock/material-history and drawn as
+//     its own line, so you can compare them. Clear all to return to aggregate.
 
-import { useMemo, useState, useEffect, useCallback } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
 
 const API_HISTORY = '/api/stock/material-history'
+const MAX_MATERIALS = 8
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const SERIES_COLORS = ['#6366f1', '#0ea5e9', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6']
 
 const AXIS_LBL_STYLE = {
   fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono',
@@ -43,21 +45,25 @@ const AggTooltip = ({ active, payload, label }) => {
   )
 }
 
-// Single-material tooltip ("qty")
+// Multi-material tooltip (quantity per selected material)
 const QtyTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
     <div style={TIP_STYLE}>
       <div style={{ color: 'var(--tx-lo)', marginBottom: 6, fontWeight: 600 }}>{label}</div>
-      <div style={{ color: '#1a7f37' }}>Quantity: <strong>{fmtQty(payload[0].value)}</strong></div>
+      {payload.map(p => (
+        <div key={p.dataKey} style={{ color: p.color, marginBottom: 2 }}>
+          {p.name}: <strong>{fmtQty(p.value)}</strong>
+        </div>
+      ))}
     </div>
   )
 }
 
 export default function TrendChart({ data, materials = [] }) {
   const [input,    setInput]    = useState('')
-  const [selected, setSelected] = useState('')     // '' = aggregate mode
-  const [series,   setSeries]   = useState([])
+  const [selected, setSelected] = useState([])   // [] = aggregate mode
+  const [chartData, setChartData] = useState([]) // merged per-day rows in material mode
   const [loadingM, setLoadingM] = useState(false)
   const [errM,     setErrM]     = useState(null)
 
@@ -83,82 +89,118 @@ export default function TrendChart({ data, materials = [] }) {
     return out
   }, [materials])
 
-  // ── fetch a single material's history ─────────────────────────────────────
-  const loadMaterial = useCallback(async (mat) => {
-    if (!mat) { setSeries([]); setErrM(null); return }
+  // ── fetch each selected material's history and merge by date ──────────────
+  useEffect(() => {
+    if (selected.length === 0) { setChartData([]); setErrM(null); setLoadingM(false); return }
+    let cancelled = false
     setLoadingM(true)
     setErrM(null)
-    try {
+
+    Promise.all(selected.map(async (mat) => {
       const res = await fetch(`${API_HISTORY}?material=${encodeURIComponent(mat)}&days=7`)
       if (!res.ok) {
         const body = await res.text().catch(() => '')
         let detail = ''
         try { detail = JSON.parse(body)?.error ?? body } catch { detail = body }
-        throw new Error(`HTTP ${res.status} — ${detail || res.statusText}`)
+        throw new Error(`${mat}: HTTP ${res.status} — ${detail || res.statusText}`)
       }
       const rows = await res.json()
-      setSeries(rows.map(d => ({
-        date:     fmtDate(d.snapshotDate ?? d.SnapshotDate),
-        quantity: Number(d.quantity ?? d.Quantity ?? 0),
-      })))
-    } catch (e) {
-      setErrM(e.message)
-      setSeries([])
-    } finally {
-      setLoadingM(false)
-    }
-  }, [])
+      return { mat, rows: rows.map(d => ({ iso: d.snapshotDate ?? d.SnapshotDate, quantity: Number(d.quantity ?? d.Quantity ?? 0) })) }
+    }))
+      .then(results => {
+        if (cancelled) return
+        const byIso = new Map()
+        for (const { mat, rows } of results) {
+          for (const r of rows) {
+            const key = String(r.iso)
+            if (!byIso.has(key)) byIso.set(key, { iso: r.iso, date: fmtDate(r.iso) })
+            byIso.get(key)[mat] = r.quantity
+          }
+        }
+        setChartData([...byIso.values()].sort((a, b) => new Date(a.iso) - new Date(b.iso)))
+      })
+      .catch(e => { if (!cancelled) { setErrM(e.message); setChartData([]) } })
+      .finally(() => { if (!cancelled) setLoadingM(false) })
 
-  useEffect(() => { loadMaterial(selected) }, [selected, loadMaterial])
+    return () => { cancelled = true }
+  }, [selected])
 
-  const applyInput = () => setSelected(input.trim())
-  const clear = () => { setInput(''); setSelected('') }
+  const addMaterial = () => {
+    const v = input.trim()
+    if (!v) return
+    setSelected(prev =>
+      prev.includes(v) || prev.length >= MAX_MATERIALS ? prev : [...prev, v]
+    )
+    setInput('')
+  }
+  const removeMaterial = (mat) => setSelected(prev => prev.filter(m => m !== mat))
+  const clearAll = () => { setInput(''); setSelected([]) }
 
-  const inMaterialMode = !!selected
+  const inMaterialMode = selected.length > 0
+  const atMax = selected.length >= MAX_MATERIALS
 
   return (
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '16px 20px' }}>
       {/* Header + material picker */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
-        <ChartLabel style={{ marginBottom: 0 }}>
-          {inMaterialMode ? `7-Day Trend — ${selected} Quantity` : '7-Day Trend — Tracked vs Flagged'}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
+        <ChartLabel style={{ marginBottom: 0, paddingTop: 4 }}>
+          {inMaterialMode ? '7-Day Trend — Material Quantity' : '7-Day Trend — Tracked vs Flagged'}
         </ChartLabel>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <input
-            list="trend-material-list"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') applyInput() }}
-            placeholder="Material #…"
-            style={{
-              width: 130, padding: '3px 8px', borderRadius: 4,
-              border: '1px solid var(--border)', fontFamily: 'var(--font-mono)', fontSize: 11,
-            }}
-          />
-          <datalist id="trend-material-list">
-            {matOptions.map(o => <option key={o.mn} value={o.mn}>{o.desc}</option>)}
-          </datalist>
-          <button onClick={applyInput} disabled={!input.trim()} style={btnStyle(!input.trim())}>Show</button>
-          {inMaterialMode && <button onClick={clear} style={btnStyle(false, true)}>Clear</button>}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <input
+              list="trend-material-list"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') addMaterial() }}
+              placeholder={atMax ? `Max ${MAX_MATERIALS}` : 'Add material #…'}
+              disabled={atMax}
+              style={{
+                width: 130, padding: '3px 8px', borderRadius: 4,
+                border: '1px solid var(--border)', fontFamily: 'var(--font-mono)', fontSize: 11,
+                opacity: atMax ? 0.6 : 1,
+              }}
+            />
+            <datalist id="trend-material-list">
+              {matOptions.map(o => <option key={o.mn} value={o.mn}>{o.desc}</option>)}
+            </datalist>
+            <button onClick={addMaterial} disabled={!input.trim() || atMax} style={btnStyle(!input.trim() || atMax)}>Add</button>
+            {inMaterialMode && <button onClick={clearAll} style={btnStyle(false, true)}>Clear</button>}
+          </div>
+          {inMaterialMode && (
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 360 }}>
+              {selected.map((mat, i) => (
+                <span key={mat} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600,
+                  color: SERIES_COLORS[i % SERIES_COLORS.length],
+                  background: 'var(--bg-inset)', border: `1px solid ${SERIES_COLORS[i % SERIES_COLORS.length]}`,
+                  borderRadius: 12, padding: '1px 6px',
+                }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: SERIES_COLORS[i % SERIES_COLORS.length] }} />
+                  {mat}
+                  <button
+                    onClick={() => removeMaterial(mat)}
+                    title="Remove"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 12, lineHeight: 1, padding: 0 }}
+                  >×</button>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       {inMaterialMode ? (
         errM ? (
-          <Empty>Couldn’t load {selected} — {errM}</Empty>
-        ) : loadingM ? (
-          <Empty>Loading {selected}…</Empty>
-        ) : series.length === 0 ? (
-          <Empty>No snapshot history for {selected}</Empty>
+          <Empty>Couldn’t load material history — {errM}</Empty>
+        ) : loadingM && chartData.length === 0 ? (
+          <Empty>Loading…</Empty>
+        ) : chartData.length === 0 ? (
+          <Empty>No snapshot history for the selected material(s)</Empty>
         ) : (
           <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={series} margin={{ top: 4, right: 16, left: 10, bottom: 4 }}>
-              <defs>
-                <linearGradient id="gradQty" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#1a7f37" stopOpacity={0.14} />
-                  <stop offset="95%" stopColor="#1a7f37" stopOpacity={0}    />
-                </linearGradient>
-              </defs>
+            <LineChart data={chartData} margin={{ top: 4, right: 16, left: 10, bottom: 4 }}>
               <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
               <XAxis dataKey="date" tick={{ fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono', fontSize: 10 }}
                 tickLine={false} axisLine={{ stroke: 'var(--border)' }} />
@@ -166,9 +208,13 @@ export default function TrendChart({ data, materials = [] }) {
                 tickLine={false} axisLine={false} width={48}
                 label={{ value: 'Quantity', angle: -90, position: 'insideLeft', offset: 6, style: AXIS_LBL_STYLE }} />
               <Tooltip content={<QtyTooltip />} />
-              <Area type="monotone" dataKey="quantity" name="Quantity" stroke="#1a7f37" strokeWidth={2}
-                fill="url(#gradQty)" dot={{ r: 3, fill: '#1a7f37', strokeWidth: 0 }} activeDot={{ r: 4 }} />
-            </AreaChart>
+              <Legend wrapperStyle={{ fontFamily: 'IBM Plex Mono', fontSize: 10, paddingTop: 8 }} />
+              {selected.map((mat, i) => (
+                <Line key={mat} type="monotone" dataKey={mat} name={mat}
+                  stroke={SERIES_COLORS[i % SERIES_COLORS.length]} strokeWidth={2}
+                  dot={{ r: 3, strokeWidth: 0 }} activeDot={{ r: 4 }} connectNulls />
+              ))}
+            </LineChart>
           </ResponsiveContainer>
         )
       ) : aggData.length === 0 ? (
