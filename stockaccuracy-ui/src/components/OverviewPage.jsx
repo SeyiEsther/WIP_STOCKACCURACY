@@ -4,7 +4,6 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts'
 
-// ─── hex colours for Recharts (cannot use CSS vars as SVG fill values) ───────
 const C = {
   green:  '#1a7f37',
   orange: '#d97706',
@@ -12,7 +11,6 @@ const C = {
   blue:   '#0969da',
 }
 
-// ─── shared axis label style ─────────────────────────────────────────────────
 const AXIS_STYLE = {
   fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono',
   fontSize: 9, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
@@ -23,7 +21,6 @@ const SLOC_PALETTE = [
   '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316',
 ]
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 function fmtShort(iso) {
   if (!iso) return ''
@@ -35,7 +32,6 @@ function fmtPct(v) {
   return `${v > 0 ? '+' : ''}${v.toFixed(1)}%`
 }
 
-// ─── sub-components ───────────────────────────────────────────────────────────
 function SectionLabel({ children }) {
   return (
     <div style={{
@@ -67,7 +63,6 @@ function Card({ children, style }) {
   )
 }
 
-// ─── Row 1: Stat Cards ────────────────────────────────────────────────────────
 function StatCard({ label, value, color, bg, border }) {
   return (
     <div style={{
@@ -114,7 +109,6 @@ function Skel() {
   )
 }
 
-// ─── Donut chart with centred label ──────────────────────────────────────────
 function DonutChart({ title, data, centerLines, noDataMsg }) {
   const hasData = data.some(d => d.value > 0)
   return (
@@ -160,7 +154,6 @@ function DonutChart({ title, data, centerLines, noDataMsg }) {
                 />
               </PieChart>
             </ResponsiveContainer>
-            {/* Centred overlay text */}
             {centerLines && (
               <div style={{
                 position: 'absolute', top: '50%', left: '50%',
@@ -181,7 +174,6 @@ function DonutChart({ title, data, centerLines, noDataMsg }) {
               </div>
             )}
           </div>
-          {/* Legend */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginTop: 10 }}>
             {data.map((d, i) => (
               <div key={i} style={{
@@ -199,7 +191,6 @@ function DonutChart({ title, data, centerLines, noDataMsg }) {
   )
 }
 
-// ─── 14-day flagged bar chart ─────────────────────────────────────────────────
 function TrendBarChart({ trendData }) {
   const hasAny = trendData.some(d => d.flagged != null)
   return (
@@ -257,7 +248,6 @@ function TrendBarChart({ trendData }) {
   )
 }
 
-// ─── Top 10 volatile horizontal bar chart ─────────────────────────────────────
 function VolatileChart({ data }) {
   return (
     <Card style={{ flex: 1 }}>
@@ -318,7 +308,6 @@ function VolatileChart({ data }) {
   )
 }
 
-// ─── Extreme Movers table ─────────────────────────────────────────────────────
 function ExtremeMoversTable({ rows }) {
   if (rows.length === 0) return null
   return (
@@ -401,9 +390,7 @@ function ExtremeMoversTable({ rows }) {
   )
 }
 
-// ─── Main OverviewPage ────────────────────────────────────────────────────────
 export default function OverviewPage({ rows, summary, trend, loading, threshold = 10 }) {
-  // ── Row 1: counts ────────────────────────────────────────────────────────
   const totalTracked = summary?.totalTracked ?? summary?.TotalTracked ?? rows.length
   const flaggedToday = useMemo(
     () => rows.filter(r => Math.abs(r.pctChange) > threshold).length,
@@ -412,7 +399,6 @@ export default function OverviewPage({ rows, summary, trend, loading, threshold 
   const newToday = summary?.totalNew ?? summary?.TotalNew ?? rows.filter(r => r.status === 'NEW').length
   const missingToday = summary?.totalMissing ?? summary?.TotalMissing ?? rows.filter(r => r.status === 'MISSING').length
 
-  // ── Stock Health donut ───────────────────────────────────────────────────
   const { healthData, healthPct } = useMemo(() => {
     const ok      = rows.filter(r => r.status !== 'MISSING' && r.status !== 'NEW' && Math.abs(r.pctChange) <= threshold).length
     const flagged = rows.filter(r => Math.abs(r.pctChange) > threshold).length
@@ -428,7 +414,6 @@ export default function OverviewPage({ rows, summary, trend, loading, threshold 
     }
   }, [rows, threshold])
 
-  // ── Flagged by Direction donut ───────────────────────────────────────────
   const directionData = useMemo(() => {
     const flagged = rows.filter(r => Math.abs(r.pctChange) > threshold)
     const up   = flagged.filter(r => (r.delta ?? 0) > 0).length
@@ -439,7 +424,6 @@ export default function OverviewPage({ rows, summary, trend, loading, threshold 
     ]
   }, [rows, threshold])
 
-  // ── Flagged by SLoc donut ────────────────────────────────────────────────
   const slocData = useMemo(() => {
     const flagged = rows.filter(r => Math.abs(r.pctChange) > threshold)
     const map = {}
@@ -449,7 +433,6 @@ export default function OverviewPage({ rows, summary, trend, loading, threshold 
       .map(([name, value], i) => ({ name, value, color: SLOC_PALETTE[i % SLOC_PALETTE.length] }))
   }, [rows, threshold])
 
-  // ── 14-day trend bars ────────────────────────────────────────────────────
   const trendData = useMemo(() => {
     const sorted = [...(trend || [])].sort((a, b) => {
       return new Date(a.snapshotDate ?? a.SnapshotDate) - new Date(b.snapshotDate ?? b.SnapshotDate)
@@ -466,7 +449,6 @@ export default function OverviewPage({ rows, summary, trend, loading, threshold 
     })
   }, [trend])
 
-  // ── Top 10 volatile ──────────────────────────────────────────────────────
   const top10 = useMemo(() =>
     [...rows]
       .filter(r => r.status !== 'MISSING' && r.status !== 'NEW' && isFinite(r.pctChange))
@@ -479,14 +461,12 @@ export default function OverviewPage({ rows, summary, trend, loading, threshold 
       }))
   , [rows])
 
-  // ── Extreme movers (>500%) ───────────────────────────────────────────────
   const extremeMovers = useMemo(() =>
     [...rows]
       .filter(r => Math.abs(r.pctChange) > 500)
       .sort((a, b) => Math.abs(b.pctChange) - Math.abs(a.pctChange))
   , [rows])
 
-  // ─── render ───────────────────────────────────────────────────────────────
   return (
     <main style={{ flex: 1, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
       {loading && rows.length === 0 && (
@@ -498,7 +478,6 @@ export default function OverviewPage({ rows, summary, trend, loading, threshold 
         </div>
       )}
 
-      {/* Row 1 — 4 stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
         <StatCard label="Total Materials Tracked" value={totalTracked}
           color="var(--blue)"   bg="var(--blue-bg)"   border="var(--blue-border)"   />
@@ -510,7 +489,6 @@ export default function OverviewPage({ rows, summary, trend, loading, threshold 
           color="var(--red)"    bg="var(--red-bg)"    border="var(--red-border)"    />
       </div>
 
-      {/* Row 2 — 3 donut charts */}
       <div style={{ display: 'flex', gap: 14 }}>
         <DonutChart
           title="Stock Health"
@@ -532,13 +510,11 @@ export default function OverviewPage({ rows, summary, trend, loading, threshold 
         />
       </div>
 
-      {/* Row 3 — trend bar + top 10 volatile */}
       <div style={{ display: 'flex', gap: 14 }}>
         <TrendBarChart trendData={trendData} />
         <VolatileChart data={top10} />
       </div>
 
-      {/* Row 4 — extreme movers */}
       {extremeMovers.length > 0 && (
         <ExtremeMoversTable rows={extremeMovers} />
       )}

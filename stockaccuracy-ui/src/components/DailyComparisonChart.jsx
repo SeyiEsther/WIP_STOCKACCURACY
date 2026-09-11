@@ -4,7 +4,7 @@ import {
   Tooltip, ReferenceLine, ResponsiveContainer,
 } from 'recharts'
 
-const OUTLIER_THRESHOLD = 500   // % — excluded from chart, shown in list below
+const OUTLIER_THRESHOLD = 500
 
 const AXIS_LBL_STYLE = {
   fill: 'var(--tx-lo)', fontFamily: 'IBM Plex Mono',
@@ -181,7 +181,6 @@ export default function DailyComparisonChart({ data, threshold = 10 }) {
         </ResponsiveContainer>
       )}
 
-      {/* Outlier list */}
       {outliers.length > 0 && (
         <div style={{
           marginTop: 10,

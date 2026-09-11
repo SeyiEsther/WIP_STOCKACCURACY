@@ -1,5 +1,3 @@
-// KPI Strip — horizontal row of key numbers, each is a filter shortcut
-
 const KPIS = [
   { key: 'ALL',     label: 'Tracked', field: 'totalTracked', color: 'var(--tx-hi)',  activeColor: 'var(--blue)'  },
   { key: 'FLAGGED', label: 'Flagged', field: 'totalFlagged', color: 'var(--amber)', activeColor: 'var(--amber)' },

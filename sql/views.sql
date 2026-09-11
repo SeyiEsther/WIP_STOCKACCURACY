@@ -1,12 +1,3 @@
--- =====================================================
--- Stock Accuracy Monitor — SQL Server view definitions
--- Run once against the target database
--- =====================================================
-
--- ------------------------------------
--- Daily snapshot table (populated by
--- a scheduled SQL Agent job or SSIS package)
--- ------------------------------------
 IF OBJECT_ID('dbo.StockSnapshot', 'U') IS NULL
 CREATE TABLE dbo.StockSnapshot (
     SnapshotDate   DATE         NOT NULL,
@@ -19,11 +10,6 @@ CREATE TABLE dbo.StockSnapshot (
     CONSTRAINT PK_StockSnapshot PRIMARY KEY (SnapshotDate, MaterialNumber, SLoc)
 );
 
--- ------------------------------------
--- vw_StockComparison
--- One row per material/SLoc comparing
--- today's snapshot against yesterday's
--- ------------------------------------
 CREATE OR ALTER VIEW dbo.vw_StockComparison AS
 WITH Today AS (
     SELECT * FROM dbo.StockSnapshot
@@ -81,10 +67,6 @@ SELECT
     YesterdayDate
 FROM Combined;
 
--- ------------------------------------
--- vw_StockSummary
--- Single-row summary for stat cards
--- ------------------------------------
 CREATE OR ALTER VIEW dbo.vw_StockSummary AS
 SELECT
     COUNT(*)                                              AS TotalTracked,
@@ -94,10 +76,6 @@ SELECT
     MAX(TodayDate)                                        AS LastSnapshotDate
 FROM dbo.vw_StockComparison;
 
--- ------------------------------------
--- Watchlist
--- Materials/SLocs flagged for closer monitoring
--- ------------------------------------
 IF OBJECT_ID('dbo.Watchlist', 'U') IS NULL
 CREATE TABLE dbo.Watchlist (
     MaterialNumber NVARCHAR(18) NOT NULL,
@@ -105,10 +83,6 @@ CREATE TABLE dbo.Watchlist (
     CONSTRAINT PK_Watchlist PRIMARY KEY (MaterialNumber, SLoc)
 );
 
--- ------------------------------------
--- vw_WatchlistComparison
--- Same shape as vw_StockComparison, scoped to watchlisted material/SLoc pairs
--- ------------------------------------
 CREATE OR ALTER VIEW dbo.vw_WatchlistComparison AS
 SELECT c.*
 FROM dbo.vw_StockComparison c

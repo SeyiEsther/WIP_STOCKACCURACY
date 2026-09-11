@@ -5,22 +5,18 @@
 }
 
 :root {
-  /* surfaces */
   --bg-base:    #f6f8fa;
   --bg-surface: #ffffff;
   --bg-inset:   #f1f3f5;
 
-  /* borders */
   --border:     #d0d7de;
   --border-sub: #e4e8ec;
 
-  /* text */
   --tx-hi:   #1f2328;
   --tx-body: #36393d;
   --tx-lo:   #636c76;
   --tx-faint:#9198a1;
 
-  /* status — used only for meaning, never decoration */
   --green:        #1a7f37;
   --green-bg:     #dafbe1;
   --green-border: #82cfad;

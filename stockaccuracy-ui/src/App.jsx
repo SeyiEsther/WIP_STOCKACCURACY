@@ -21,7 +21,6 @@ function normTrend(t) {
   }
 }
 
-// ─── data hook ──────────────────────────────────────────────────────────────
 function useStockData(trendDays) {
   const [rows,           setRows]           = useState([])
   const [summary,        setSummary]        = useState(null)
@@ -66,7 +65,6 @@ function useStockData(trendDays) {
   return { rows, summary, trend, materialTrends, loading, error, lastUpdated, refresh: fetchAll }
 }
 
-// ─── investigation store (localStorage) ─────────────────────────────────────
 const IID_KEY = 'sa_investigated'
 
 function loadInvestigated() {
@@ -77,7 +75,6 @@ function saveInvestigated(obj) {
 }
 
 
-// ─── Nav bar ─────────────────────────────────────────────────────────────────
 function NavBar({ page, onPageChange }) {
   const tabs = [
     { key: 'overview',  label: 'Overview' },
@@ -123,7 +120,6 @@ function NavBar({ page, onPageChange }) {
   )
 }
 
-// ────────────────────────────────────────────────────────────────────────────
 export default function App() {
   const [trendDays, setTrendDays] = useState(5)
   const [page, setPage] = useState('overview')
@@ -133,7 +129,6 @@ export default function App() {
     loading, error, lastUpdated, refresh,
   } = useStockData(trendDays)
 
-  // ── filter / sort state ──────────────────────────────────────────────────
   const [activeCard,  setActiveCard]  = useState('ALL')
   const [filterChip,  setFilterChip]  = useState('ALL')
   const [search,      setSearch]      = useState('')
@@ -145,7 +140,6 @@ export default function App() {
   const [trendOnly,   setTrendOnly]   = useState(false)
   const [hideAcked,   setHideAcked]   = useState(false)
 
-  // ── investigation state ───────────────────────────────────────────────────
   const [investigated, setInvestigated] = useState(loadInvestigated)
 
   const handleInvestigate = useCallback((mat, sloc) => {
@@ -158,25 +152,20 @@ export default function App() {
     })
   }, [])
 
-  // ── notification panel ────────────────────────────────────────────────────
   const [notifOpen, setNotifOpen] = useState(false)
 
-  // ── sync card → chip ──────────────────────────────────────────────────────
   const handleCardClick = (cat) => {
     setActiveCard(cat)
     setFilterChip(cat)
   }
 
-  // ── derived sloc list ─────────────────────────────────────────────────────
   const slocs = useMemo(() => {
     const s = new Set(rows.map(r => r.sLoc ?? r.SLoc ?? r.sloc))
     return ['ALL', ...Array.from(s).sort()]
   }, [rows])
 
-  // ── normalise rows ────────────────────────────────────────────────────────
   const normalised = useMemo(() => rows.map(norm), [rows])
 
-  // ── merge material trends ─────────────────────────────────────────────────
   const withTrends = useMemo(() => {
     const tmap = new Map(materialTrends.map(t => [iid(t.materialNumber, t.sLoc), t]))
     return normalised.map(r => {
@@ -185,8 +174,6 @@ export default function App() {
     })
   }, [normalised, materialTrends])
 
-  // ── ABC classification — assigned once when data loads, stored in state ──
-  // Random distribution: ~10% A / 20% B / 70% C. Stable across re-renders.
   const [abcMap, setAbcMap] = useState(() => new Map())
 
   useEffect(() => {
@@ -213,7 +200,6 @@ export default function App() {
     }))
   , [withTrends, abcMap])
 
-  // ── mock trend: back-fill 7 days when API returns sparse data ────────────
   const trendWithMock = useMemo(() => {
     const DAYS = 7
     if (trend.length >= DAYS) return trend
@@ -231,7 +217,6 @@ export default function App() {
       d.setDate(d.getDate() - i)
       const key = d.toISOString().slice(0, 10)
       if (existing.has(key)) { filled.push(existing.get(key)); continue }
-      // Gentle realistic variation: tracked drifts ±3%, flagged ±25%
       const noise   = 1 + Math.sin(i * 1.7 + 0.4) * 0.03
       const fNoise  = 1 + Math.cos(i * 1.1 + 1.2) * 0.25
       filled.push({
@@ -243,7 +228,6 @@ export default function App() {
     return filled
   }, [trend, withABC.length])
 
-  // ── unread bell count (flagged & not yet investigated) ────────────────────
   const unreadCount = useMemo(() =>
     withABC.filter(r =>
       Math.abs(r.pctChange) > threshold &&
@@ -253,7 +237,6 @@ export default function App() {
     ).length
   , [withABC, threshold, investigated])
 
-  // ── filtered rows ─────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let d = withABC
 
@@ -283,7 +266,6 @@ export default function App() {
     return d
   }, [withABC, sloc, search, activeCard, filterChip, threshold, abcFilter, trendOnly, hideAcked, investigated])
 
-  // ── sorted rows ───────────────────────────────────────────────────────────
   const sorted = useMemo(() => {
     const dir = sortDir === 'asc' ? 1 : -1
     return [...filtered].sort((a, b) => {
@@ -316,7 +298,6 @@ export default function App() {
     window.location.href = `${API_BASE}/export?${params}`
   }
 
-  // ── live summary (threshold-adjusted flagged count) ───────────────────────
   const liveSummary = useMemo(() => {
     if (!summary) return null
     return {
@@ -412,7 +393,6 @@ export default function App() {
         </main>
       )}
 
-      {/* Notification panel */}
       {notifOpen && (
         <NotificationPanel
           items={withABC}

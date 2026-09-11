@@ -1,4 +1,3 @@
-// ─── normalise API field names (PascalCase or camelCase) ────────────────────
 export function norm(r) {
   return {
     materialNumber: r.materialNumber ?? r.MaterialNumber,

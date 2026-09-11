@@ -105,12 +105,6 @@ public class StockRepository : IStockRepository
         }
     }
 
-    /// <summary>
-    /// Returns directional trend per material+SLoc over the last <paramref name="days"/> snapshot days.
-    /// UP   = every day-over-day step was positive (qty rose each day)
-    /// DOWN = every step was negative
-    /// FLAT = mixed or zero movement
-    /// </summary>
     public async Task<IEnumerable<MaterialTrend>> GetMaterialTrendsAsync(int days = 5)
     {
         if (days < 2)  days = 2;

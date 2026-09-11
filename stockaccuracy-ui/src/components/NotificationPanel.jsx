@@ -1,6 +1,3 @@
-// Notification centre — slide-in panel showing all flagged items,
-// each dismissible with an "Investigated ✓" timestamp record.
-
 const iid = (mat, sloc) => `${mat}__${sloc}`
 
 const fmtTime = (isoStr) => {
@@ -11,7 +8,6 @@ const fmtTime = (isoStr) => {
 const fmtPct = (n) => `${Math.abs(n).toFixed(1)}%`
 
 export default function NotificationPanel({ items, threshold, investigated, onInvestigate, onClose }) {
-  // Only show items with a meaningful % change (not NEW / MISSING — those are separate workflows)
   const flagged = (items || []).filter(r =>
     Math.abs(r.pctChange) > threshold &&
     r.status !== 'MISSING' &&
@@ -23,7 +19,6 @@ export default function NotificationPanel({ items, threshold, investigated, onIn
 
   return (
     <>
-      {/* Backdrop */}
       <div
         onClick={onClose}
         style={{
@@ -32,7 +27,6 @@ export default function NotificationPanel({ items, threshold, investigated, onIn
         }}
       />
 
-      {/* Panel */}
       <div style={{
         position: 'fixed',
         top: 48, right: 0, bottom: 0,
@@ -44,7 +38,6 @@ export default function NotificationPanel({ items, threshold, investigated, onIn
         boxShadow: '-6px 0 20px rgba(0,0,0,0.10)',
       }}>
 
-        {/* Panel header */}
         <div style={{
           padding: '11px 16px',
           borderBottom: '2px solid var(--border)',
@@ -90,7 +83,6 @@ export default function NotificationPanel({ items, threshold, investigated, onIn
           </button>
         </div>
 
-        {/* Scrollable content */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
 
           {flagged.length === 0 && (
@@ -107,7 +99,6 @@ export default function NotificationPanel({ items, threshold, investigated, onIn
             </div>
           )}
 
-          {/* ── Unaddressed ────────────────────────────────────────── */}
           {unaddressed.length > 0 && (
             <>
               <SectionHead count={unaddressed.length} type="unaddressed" />
@@ -122,7 +113,6 @@ export default function NotificationPanel({ items, threshold, investigated, onIn
             </>
           )}
 
-          {/* ── Investigated ──────────────────────────────────────── */}
           {doneItems.length > 0 && (
             <>
               <SectionHead count={doneItems.length} type="investigated" />
@@ -145,7 +135,6 @@ export default function NotificationPanel({ items, threshold, investigated, onIn
   )
 }
 
-// ─── section heading ──────────────────────────────────────────────────────────
 function SectionHead({ count, type }) {
   const isInvestigated = type === 'investigated'
   return (
@@ -162,7 +151,6 @@ function SectionHead({ count, type }) {
   )
 }
 
-// ─── notification card ────────────────────────────────────────────────────────
 function NCard({ row, investigatedAt, onInvestigate }) {
   const up        = row.delta >= 0
   const isDone    = !!investigatedAt
@@ -179,7 +167,6 @@ function NCard({ row, investigatedAt, onInvestigate }) {
       opacity: isDone ? 0.75 : 1,
     }}>
 
-      {/* Top row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
         <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 12, color: 'var(--tx-hi)' }}>
           {row.materialNumber}
@@ -199,7 +186,6 @@ function NCard({ row, investigatedAt, onInvestigate }) {
         )}
       </div>
 
-      {/* Description */}
       <div style={{
         fontSize: 11, color: 'var(--tx-body)', marginBottom: 6,
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -207,7 +193,6 @@ function NCard({ row, investigatedAt, onInvestigate }) {
         {row.materialDesc}
       </div>
 
-      {/* Change summary */}
       <div style={{
         fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600,
         color: up ? 'var(--green)' : 'var(--red)',
@@ -216,7 +201,6 @@ function NCard({ row, investigatedAt, onInvestigate }) {
         {arrow} {direction} {pct} since yesterday
       </div>
 
-      {/* Value impact */}
       {row.valueImpact != null && row.valueImpact > 0 && (
         <div style={{
           fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--tx-lo)',
@@ -226,7 +210,6 @@ function NCard({ row, investigatedAt, onInvestigate }) {
         </div>
       )}
 
-      {/* Multi-day trend */}
       {row.trendDirection && row.trendDirection !== 'FLAT' && (
         <div style={{
           fontFamily: 'var(--font-mono)', fontSize: 10,
@@ -237,7 +220,6 @@ function NCard({ row, investigatedAt, onInvestigate }) {
         </div>
       )}
 
-      {/* Action button */}
       {isDone ? (
         <button
           onClick={() => onInvestigate(row.materialNumber, row.sLoc)}
@@ -257,7 +239,6 @@ function NCard({ row, investigatedAt, onInvestigate }) {
   )
 }
 
-// ─── ABC pip ─────────────────────────────────────────────────────────────────
 function AbcPip({ cls }) {
   const T = {
     A: { color: 'var(--amber)', bg: 'var(--amber-bg)', border: 'var(--amber-border)' },
@@ -277,7 +258,6 @@ function AbcPip({ cls }) {
   )
 }
 
-// ─── button styles ────────────────────────────────────────────────────────────
 const DISMISS_BTN = {
   background: 'var(--green-bg)',
   border: '1px solid var(--green-border)',

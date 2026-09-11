@@ -14,7 +14,6 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Always return JSON errors — suppress the HTML developer exception page
 app.UseExceptionHandler(errApp => errApp.Run(async ctx =>
 {
     ctx.Response.StatusCode  = 500;

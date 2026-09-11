@@ -45,7 +45,6 @@ export default function Header({ lastUpdated, onRefresh, onExport, loading, erro
       gap: 14,
       flexShrink: 0,
     }}>
-      {/* Brand */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flex: 1 }}>
         <span style={{
           fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 13,
@@ -58,7 +57,6 @@ export default function Header({ lastUpdated, onRefresh, onExport, loading, erro
         </span>
       </div>
 
-      {/* Status dot */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 5,
         fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--tx-lo)',
@@ -73,14 +71,12 @@ export default function Header({ lastUpdated, onRefresh, onExport, loading, erro
 
       <Divider />
 
-      {/* Last updated */}
       {lastUpdated && (
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--tx-lo)', whiteSpace: 'nowrap' }}>
           refreshed {fmt(lastUpdated)}
         </div>
       )}
 
-      {/* Live clock */}
       <div style={{
         fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--tx-hi)',
         fontWeight: 500, letterSpacing: '0.03em', minWidth: 64,
@@ -90,7 +86,6 @@ export default function Header({ lastUpdated, onRefresh, onExport, loading, erro
 
       <Divider />
 
-      {/* Bell / notification button */}
       <div style={{ position: 'relative', display: 'inline-flex' }}>
         <button
           onClick={onBellClick}

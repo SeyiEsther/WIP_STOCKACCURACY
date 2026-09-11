@@ -24,23 +24,17 @@ const ABC_CHIPS = [
 ]
 
 export default function FilterBar({
-  // status chips
   filterChip, onChipChange,
-  // search / sloc / threshold
   search, onSearchChange,
   sloc, slocs, onSlocChange,
   threshold, onThresholdChange,
-  // ABC
   abcFilter, onAbcFilterChange, hasAbc, abcIsMock,
-  // trend
   trendOnly, onTrendOnlyChange, trendDays, onTrendDaysChange,
-  // ack
   hideAcked, onHideAckedChange, ackedCount,
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
 
-      {/* ── Row 1: status chips + search / sloc / threshold ─────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 4 }}>
           {STATUS_CHIPS.map(c => (
@@ -88,10 +82,8 @@ export default function FilterBar({
         </div>
       </div>
 
-      {/* ── Row 2: ABC / trend / ack ─────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
 
-        {/* ABC class filter */}
         {hasAbc && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -115,7 +107,6 @@ export default function FilterBar({
 
         {hasAbc && <Sep />}
 
-        {/* Trend filter */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <ToggleBtn
             active={trendOnly}
@@ -142,7 +133,6 @@ export default function FilterBar({
 
         <Sep />
 
-        {/* Hide investigated */}
         <ToggleBtn
           active={hideAcked}
           onClick={() => onHideAckedChange(!hideAcked)}
@@ -156,8 +146,6 @@ export default function FilterBar({
     </div>
   )
 }
-
-// ── shared sub-components ────────────────────────────────────────────────────
 
 function Chip({ label, active, theme, onClick }) {
   return (

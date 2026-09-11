@@ -1,4 +1,3 @@
-// ─── formatters ─────────────────────────────────────────────────────────────
 const fmtQty = (n) => {
   if (n == null) return '—'
   return Number(n).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 3 })
@@ -17,7 +16,6 @@ const fmtValue = (n) => {
   }).format(n)
 }
 
-// ─── status derivation ───────────────────────────────────────────────────────
 function iid(mat, sloc) { return `${mat}__${sloc}` }
 
 function deriveStatus(row, threshold, investigated) {
@@ -40,12 +38,11 @@ const STATUS_DEF = {
 }
 
 const ABC_DEF = {
-  A: { color: '#92400e', bg: '#fef3c7', border: '#fcd34d' },                        // gold / yellow
-  B: { color: 'var(--grey)',  bg: 'var(--grey-bg)',  border: 'var(--grey-border)'  }, // grey
-  C: { color: 'var(--blue)',  bg: 'var(--blue-bg)',  border: 'var(--blue-border)'  }, // light blue
+  A: { color: '#92400e', bg: '#fef3c7', border: '#fcd34d' },
+  B: { color: 'var(--grey)',  bg: 'var(--grey-bg)',  border: 'var(--grey-border)'  },
+  C: { color: 'var(--blue)',  bg: 'var(--blue-bg)',  border: 'var(--blue-border)'  },
 }
 
-// ─── column definitions ───────────────────────────────────────────────────────
 function buildCols(hasAbc, { showImpact = true, showTrend = true, showAck = true } = {}) {
   const cols = [
     { key: 'materialNumber', label: 'Material',    align: 'left',   width: 108      },
@@ -70,7 +67,6 @@ function buildCols(hasAbc, { showImpact = true, showTrend = true, showAck = true
   return cols
 }
 
-// ─── sub-components ───────────────────────────────────────────────────────────
 function SortIcon({ active, dir }) {
   if (!active) return <span style={{ color: 'var(--border-sub)', marginLeft: 3 }}>↕</span>
   return <span style={{ color: 'var(--blue)', marginLeft: 3 }}>{dir === 'asc' ? '↑' : '↓'}</span>
@@ -176,7 +172,6 @@ function InvestigateBtn({ isInvestigated, onClick }) {
   )
 }
 
-// ─── main table ───────────────────────────────────────────────────────────────
 export default function StockTable({
   rows, loading, sortKey, sortDir, onSort, threshold,
   investigated, onAck, hasAbc,

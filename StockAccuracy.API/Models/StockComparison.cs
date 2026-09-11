@@ -15,10 +15,5 @@ public class StockComparison
     public DateTime TodayDate     { get; set; }
     public DateTime YesterdayDate { get; set; }
 
-    /// <summary>
-    /// Unit price / moving-average price.
-    /// Add to vw_StockComparison:  ISNULL(mb.VERPR, mb.STPRS) / 10 AS UnitValue
-    /// joining MBEW mb ON mb.MATNR = … AND mb.BWKEY = … (or local SAP equivalent)
-    /// </summary>
     public decimal? UnitValue { get; set; }
 }

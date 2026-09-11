@@ -23,7 +23,6 @@ public class StockController : ControllerBase
         _log    = log;
     }
 
-    // Navigate to /api/stock/health in the browser to see the real connection error
     [HttpGet("health")]
     public async Task<IActionResult> Health()
     {
