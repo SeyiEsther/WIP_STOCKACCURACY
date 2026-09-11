@@ -28,7 +28,7 @@ export default function FilterBar({
   search, onSearchChange,
   sloc, slocs, onSlocChange,
   threshold, onThresholdChange,
-  abcFilter, onAbcFilterChange, hasAbc, abcIsMock,
+  abcFilter, onAbcFilterChange, hasAbc,
   trendOnly, onTrendOnlyChange, trendDays, onTrendDaysChange,
   hideAcked, onHideAckedChange, ackedCount,
 }) {

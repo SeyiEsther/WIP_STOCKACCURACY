@@ -74,7 +74,6 @@ function saveInvestigated(obj) {
   try { localStorage.setItem(IID_KEY, JSON.stringify(obj)) } catch {}
 }
 
-
 function NavBar({ page, onPageChange }) {
   const tabs = [
     { key: 'overview',  label: 'Overview' },
@@ -189,8 +188,6 @@ export default function App() {
       return map
     })
   }, [normalised])
-
-  const abcIsMock = !normalised.some(r => r.unitValue != null)
 
   const withABC = useMemo(() =>
     withTrends.map(r => ({
@@ -376,7 +373,6 @@ export default function App() {
             onHideAckedChange={setHideAcked}
             ackedCount={investigatedCount}
             hasAbc={true}
-            abcIsMock={abcIsMock}
           />
 
           <StockTable
